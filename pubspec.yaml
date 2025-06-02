@@ -1,0 +1,65 @@
+name: joya_express
+description: "A new Flutter project."
+
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Gestion de Estado
+  flutter_riverpod: ^2.4.0
+
+  # UI
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.1.0
+
+  # Almacenamiento local
+  shared_preferences: ^2.5.3
+
+  # Selector de imagen
+  image_picker: ^1.0.4
+
+  # Abre URLs, correos, llamadas o SMS desde la app.
+  url_launcher: ^6.2.1
+
+  # Formateo internacional en numero de telefono
+  intl_phone_field: ^3.2.0
+
+  # Navigation
+  go_router: ^12.1.1
+
+  flutter_bloc: ^9.1.1
+
+  #Trafico http
+  http: ^1.4.0
+
+  # Networking
+  dio: ^5.8.0+1
+
+  formz: ^0.8.0
+  equatable: ^2.0.7
+  provider: ^6.1.5
+  flutter_dotenv: ^5.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+
+  flutter_lints: ^5.0.0
+
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
+    - assets/images/
+    - assets/icons/

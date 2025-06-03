@@ -34,18 +34,13 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: AppColors.surface,
         elevation: 1,
         shadowColor: AppColors.border,
-        title: Text(
-          AppStrings.home,
-          style: AppTextStyles.poppinsHeading3,
-        ),
+        title: Text(AppStrings.home, style: AppTextStyles.poppinsHeading3),
         leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(
-              Icons.menu,
-              color: AppColors.textPrimary,
-            ),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
+          builder:
+              (context) => IconButton(
+                icon: const Icon(Icons.menu, color: AppColors.textPrimary),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              ),
         ),
       ),
       drawer: const AppDrawer(),
@@ -53,9 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context, authViewModel, child) {
           if (authViewModel.isLoading) {
             return const Center(
-              child: CircularProgressIndicator(
-                color: AppColors.primary,
-              ),
+              child: CircularProgressIndicator(color: AppColors.primary),
             );
           }
 
@@ -99,20 +92,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     child: Column(
                       children: [
-
                         const SizedBox(height: 16),
-                        ElevatedButton(
+
+                        // NUEVO BOTÓN PARA IR AL MAPA
+                        ElevatedButton.icon(
                           onPressed: () {
-                            // TODO: Implementar funcionalidad principal
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Joya Express en desarrollo'),
-                                backgroundColor: AppColors.info,
-                              ),
-                            );
+                            Navigator.pushNamed(context, '/map');
                           },
+                          icon: const Icon(Icons.map_outlined),
+                          label: const Text('Ir al Mapa'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
+                            foregroundColor: AppColors.white,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 32,
                               vertical: 16,
@@ -120,8 +111,33 @@ class _HomeScreenState extends State<HomeScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                          ), child: null,
-                          
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // Botón placeholder original
+                        ElevatedButton(
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Otras funciones en desarrollo'),
+                                backgroundColor: AppColors.info,
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.secondary,
+                            foregroundColor: AppColors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 32,
+                              vertical: 16,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('Otras opciones'),
                         ),
                       ],
                     ),

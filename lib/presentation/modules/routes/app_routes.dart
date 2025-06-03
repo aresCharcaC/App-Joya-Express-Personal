@@ -10,6 +10,8 @@ import '../auth/screens/create_password_screen.dart';
 import '../auth/screens/account_setup_screen.dart';
 import '../auth/screens/forgot_password_screen.dart';
 import '../auth/screens/welcome_screen.dart';
+// NUEVA IMPORTACIÓN
+import '../map/screens/map_main_screen.dart';
 
 class AppRoutes {
   static const String welcome = '/welcome';
@@ -21,21 +23,26 @@ class AppRoutes {
   static const String forgotPassword = '/forgot-password';
   static const String home = '/home';
   static const String profile = '/profile';
+  // NUEVA RUTA
+  static const String mapMain = '/map';
 
   static Map<String, WidgetBuilder> get routes => {
-        welcome: (context) => const WelcomeScreen(),
-        login: (context) => const LoginScreen(),
-        phoneInput: (context) => const PhoneInputScreen(),
-        verifyPhone: (context) {
-          // Puedes recibir argumentos si lo necesitas
-          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-          final phoneNumber = args?['phoneNumber'] ?? '';
-          return VerifyPhoneScreen(phoneNumber: phoneNumber);
-        },
-        createPassword: (context) => const CreatePasswordScreen(),
-        accountSetup: (context) => const AccountSetupScreen(),
-        forgotPassword: (context) => const ForgotPasswordScreen(),
-        home: (context) => const HomeScreen(),
-        profile: (context) => const ProfileScreen(),
-      };
+    welcome: (context) => const WelcomeScreen(),
+    login: (context) => const LoginScreen(),
+    phoneInput: (context) => const PhoneInputScreen(),
+    verifyPhone: (context) {
+      // Puedes recibir argumentos si lo necesitas
+      final args =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      final phoneNumber = args?['phoneNumber'] ?? '';
+      return VerifyPhoneScreen(phoneNumber: phoneNumber);
+    },
+    createPassword: (context) => const CreatePasswordScreen(),
+    accountSetup: (context) => const AccountSetupScreen(),
+    forgotPassword: (context) => const ForgotPasswordScreen(),
+    home: (context) => const HomeScreen(),
+    profile: (context) => const ProfileScreen(),
+    // NUEVA RUTA
+    mapMain: (context) => const MapMainScreen(),
+  };
 }

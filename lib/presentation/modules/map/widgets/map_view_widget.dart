@@ -3,9 +3,10 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/route_constants.dart';
 import '../viewmodels/map_viewmodel.dart';
 
-/// Widget del mapa principal reutilizable
+/// Widget del mapa principal con soporte para rutas
 class MapViewWidget extends StatelessWidget {
   final VoidCallback? onCurrentLocationTap;
   final bool showCurrentLocationButton;
@@ -54,6 +55,19 @@ class MapViewWidget extends StatelessWidget {
                   maxZoom: 18,
                 ),
 
+                // Capa de ruta (NUEVA)
+                if (mapViewModel.hasRoute)
+                  PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: mapViewModel.routePoints,
+                        strokeWidth: RouteConstants.routeStrokeWidth,
+                        color: AppColors.primary,
+                        // SIN borderStrokeWidth ni borderColor para quitar contorno blanco
+                      ),
+                    ],
+                  ),
+
                 // Capa de marcadores
                 MarkerLayer(markers: _buildMarkers(mapViewModel)),
               ],
@@ -67,18 +81,15 @@ class MapViewWidget extends StatelessWidget {
                 child: _buildCurrentLocationButton(context, mapViewModel),
               ),
 
-            // Overlay de carga
-            if (mapViewModel.isLoading)
-              Container(
-                color: Colors.black26,
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      AppColors.primary,
-                    ),
-                  ),
-                ),
-              ),
+            // Overlay de carga de ruta (NUEVO)
+            if (mapViewModel.isCalculatingRoute) _buildRouteLoadingOverlay(),
+
+            // Overlay de error de ruta (NUEVO)
+            if (mapViewModel.hasRouteError)
+              _buildRouteErrorOverlay(context, mapViewModel),
+
+            // Overlay de información de ruta (NUEVO)
+            if (mapViewModel.hasRoute) _buildRouteInfoOverlay(mapViewModel),
           ],
         );
       },
@@ -108,7 +119,9 @@ class MapViewWidget extends StatelessWidget {
           point: mapViewModel.pickupLocation!.coordinates,
           width: 20,
           height: 35, // Más alto por el palito
-          child: _buildPickupMarker(),
+          child: _buildPickupMarker(
+            mapViewModel.pickupLocation!.isSnappedToRoad,
+          ),
         ),
       );
     }
@@ -120,7 +133,9 @@ class MapViewWidget extends StatelessWidget {
           point: mapViewModel.destinationLocation!.coordinates,
           width: 20,
           height: 35,
-          child: _buildDestinationMarker(),
+          child: _buildDestinationMarker(
+            mapViewModel.destinationLocation!.isSnappedToRoad,
+          ),
         ),
       );
     }
@@ -129,7 +144,7 @@ class MapViewWidget extends StatelessWidget {
   }
 
   /// Marcador de punto de recogida (pin negro con palito)
-  Widget _buildPickupMarker() {
+  Widget _buildPickupMarker(bool isSnapped) {
     return Column(
       children: [
         // Bola del pin
@@ -139,8 +154,15 @@ class MapViewWidget extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.textPrimary,
             shape: BoxShape.circle,
-            border: Border.all(color: AppColors.white, width: 2),
+            border: Border.all(
+              color: isSnapped ? AppColors.success : AppColors.white,
+              width: 2,
+            ),
           ),
+          child:
+              isSnapped
+                  ? const Icon(Icons.check, color: AppColors.white, size: 12)
+                  : null,
         ),
         // Palito del pin
         Container(width: 2, height: 15, color: AppColors.textPrimary),
@@ -154,7 +176,7 @@ class MapViewWidget extends StatelessWidget {
       width: 20,
       height: 20,
       decoration: BoxDecoration(
-        color: AppColors.info, // Azul clásico
+        color: AppColors.info,
         shape: BoxShape.circle,
         border: Border.all(color: AppColors.white, width: 3),
         boxShadow: [
@@ -169,7 +191,7 @@ class MapViewWidget extends StatelessWidget {
   }
 
   /// Marcador de destino (pin rojo)
-  Widget _buildDestinationMarker() {
+  Widget _buildDestinationMarker(bool isSnapped) {
     return Column(
       children: [
         // Bola del pin
@@ -177,10 +199,17 @@ class MapViewWidget extends StatelessWidget {
           width: 20,
           height: 20,
           decoration: BoxDecoration(
-            color: AppColors.primary, // Rojo
+            color: AppColors.primary,
             shape: BoxShape.circle,
-            border: Border.all(color: AppColors.white, width: 2),
+            border: Border.all(
+              color: isSnapped ? AppColors.success : AppColors.white,
+              width: 2,
+            ),
           ),
+          child:
+              isSnapped
+                  ? const Icon(Icons.check, color: AppColors.white, size: 12)
+                  : null,
         ),
         // Palito del pin
         Container(width: 2, height: 15, color: AppColors.primary),
@@ -204,6 +233,162 @@ class MapViewWidget extends StatelessWidget {
             mapViewModel.useCurrentLocationAsPickup();
           },
       child: const Icon(Icons.my_location),
+    );
+  }
+
+  /// Overlay de carga de ruta
+  Widget _buildRouteLoadingOverlay() {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black26,
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Calculando ruta...',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Encontrando la mejor ruta vehicular',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Overlay de error de ruta
+  Widget _buildRouteErrorOverlay(
+    BuildContext context,
+    MapViewModel mapViewModel,
+  ) {
+    return Positioned(
+      top: 100,
+      left: 20,
+      right: 20,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.error,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: AppColors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Error en la ruta',
+                    style: TextStyle(
+                      color: AppColors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    mapViewModel.routeErrorMessage ?? 'Error desconocido',
+                    style: TextStyle(color: AppColors.white, fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.refresh, color: AppColors.white),
+              onPressed: () {
+                mapViewModel.retryRouteCalculation();
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: AppColors.white),
+              onPressed: () {
+                mapViewModel.clearRoute();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Overlay de información de ruta (esquina superior)
+  Widget _buildRouteInfoOverlay(MapViewModel mapViewModel) {
+    return Positioned(
+      top: 60,
+      left: 20,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.surface.withOpacity(0.95),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.route, color: AppColors.primary, size: 16),
+            const SizedBox(width: 6),
+            Text(
+              '${mapViewModel.routeDistance.toStringAsFixed(1)} km',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.access_time, color: AppColors.textSecondary, size: 14),
+            const SizedBox(width: 4),
+            Text(
+              '${mapViewModel.routeDuration} min',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

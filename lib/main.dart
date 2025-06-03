@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:joya_express/data/datasources/auth_local_datasource.dart';
-import 'package:joya_express/data/repositories_impl/auth_repository_mock_impl.dart'; // ← TEMPORAL
+import 'package:joya_express/data/repositories_impl/auth_repository_mock_impl.dart';
 import 'package:joya_express/presentation/modules/auth/viewmodels/auth_viewmodel.dart';
-// NUEVA IMPORTACIÓN
 import 'package:joya_express/presentation/modules/map/viewmodels/map_viewmodel.dart';
+import 'package:joya_express/data/services/enhanced_vehicle_trip_service.dart'; // NUEVO
 import 'package:provider/provider.dart';
 import 'presentation/modules/routes/app_routes.dart';
 
 void main() async {
-  // Asegurarse de que los bindings de Flutter estén inicializados antes de usar Provider
+  // Asegurarse de que los bindings de Flutter estén inicializados
   WidgetsFlutterBinding.ensureInitialized();
 
   // ========== CONFIGURACIÓN TEMPORAL MOCK ==========
@@ -17,6 +17,16 @@ void main() async {
     localDataSource: localDataSource,
   );
   // ===============================================
+
+  // ========== INICIALIZACIÓN DE SERVICIOS DE RUTA (NUEVO) ==========
+  try {
+    await EnhancedVehicleTripService().initialize();
+    print('✅ Servicios de ruta inicializados correctamente');
+  } catch (e) {
+    print('❌ Error inicializando servicios de ruta: $e');
+    // La app puede continuar, pero las rutas no funcionarán
+  }
+  // ===============================================================
 
   final authViewModel = AuthViewModel(authRepository: authRepository);
   await authViewModel.initializeFromPersistedState();
@@ -28,8 +38,7 @@ void main() async {
         ChangeNotifierProvider(
           create: (_) => AuthViewModel(authRepository: authRepository),
         ),
-        // NUEVO PROVIDER PARA EL MAPA
-        ChangeNotifierProvider(create: (_) => MapViewModel()),
+        ChangeNotifierProvider(create: (_) => MapViewModel()), // ACTUALIZADO
       ],
       child: const MyApp(),
     ),

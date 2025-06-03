@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../viewmodels/map_viewmodel.dart';
+import 'trip_offer_bottom_sheet.dart';
 
 /// Panel inferior con campos de origen y destino
 class LocationInputPanel extends StatelessWidget {
@@ -47,8 +48,8 @@ class LocationInputPanel extends StatelessWidget {
 
                   const SizedBox(height: 16),
 
-                  // Botón de tarifa
-                  _buildTripOfferButton(),
+                  // Botón de tarifa (ACTUALIZADO)
+                  _buildTripOfferButton(context, mapViewModel),
 
                   const SizedBox(height: 12),
 
@@ -146,10 +147,16 @@ class LocationInputPanel extends StatelessWidget {
     );
   }
 
-  /// Botón de tarifa
-  Widget _buildTripOfferButton() {
+  /// Botón de tarifa (ACTUALIZADO - Muestra info de ruta cuando existe)
+  Widget _buildTripOfferButton(
+    BuildContext context,
+    MapViewModel mapViewModel,
+  ) {
+    final bool hasRoute = mapViewModel.hasRoute;
+
     return GestureDetector(
-      onTap: onTripOfferTap,
+      onTap:
+          hasRoute ? () => _showTripOfferBottomSheet(context) : onTripOfferTap,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16),
@@ -174,14 +181,37 @@ class LocationInputPanel extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                'Brinda una oferta',
-                style: AppTextStyles.interBody.copyWith(
-                  color: AppColors.white,
-                  fontSize: 16,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    hasRoute ? 'Configurar Tarifa' : 'Brinda una oferta',
+                    style: AppTextStyles.interBody.copyWith(
+                      color: AppColors.white,
+                      fontSize: 16,
+                      fontWeight:
+                          hasRoute ? FontWeight.w500 : FontWeight.normal,
+                    ),
+                  ),
+                  if (hasRoute) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'Precio sugerido: S/${_calculateSuggestedPrice(mapViewModel.routeDistance)}',
+                      style: AppTextStyles.interCaption.copyWith(
+                        color: AppColors.white.withOpacity(0.7),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
+            if (hasRoute)
+              Icon(
+                Icons.arrow_forward_ios,
+                color: AppColors.white.withOpacity(0.5),
+                size: 16,
+              ),
           ],
         ),
       ),
@@ -213,6 +243,22 @@ class LocationInputPanel extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  /// Calcula el precio sugerido (3 soles base + 1 sol por km)
+  int _calculateSuggestedPrice(double distanceKm) {
+    final price = 3.0 + (distanceKm * 1.0);
+    return ((price * 2).round() / 2).round(); // Redondear a .5 más cercano
+  }
+
+  /// Muestra el bottom sheet de tarifa
+  void _showTripOfferBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const TripOfferBottomSheet(),
     );
   }
 }

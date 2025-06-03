@@ -6,12 +6,14 @@ class LocationEntity {
   final String? address;
   final String? name;
   final bool isCurrentLocation;
+  final bool isSnappedToRoad;
 
   const LocationEntity({
     required this.coordinates,
     this.address,
     this.name,
     this.isCurrentLocation = false,
+    this.isSnappedToRoad = false,
   });
 
   LocationEntity copyWith({
@@ -19,12 +21,14 @@ class LocationEntity {
     String? address,
     String? name,
     bool? isCurrentLocation,
+    bool? isSnappedToRoad,
   }) {
     return LocationEntity(
       coordinates: coordinates ?? this.coordinates,
       address: address ?? this.address,
       name: name ?? this.name,
       isCurrentLocation: isCurrentLocation ?? this.isCurrentLocation,
+      isSnappedToRoad: isSnappedToRoad ?? this.isSnappedToRoad,
     );
   }
 
@@ -35,7 +39,8 @@ class LocationEntity {
         other.coordinates == coordinates &&
         other.address == address &&
         other.name == name &&
-        other.isCurrentLocation == isCurrentLocation;
+        other.isCurrentLocation == isCurrentLocation &&
+        other.isSnappedToRoad == isSnappedToRoad;
   }
 
   @override
@@ -43,11 +48,12 @@ class LocationEntity {
     return coordinates.hashCode ^
         address.hashCode ^
         name.hashCode ^
-        isCurrentLocation.hashCode;
+        isCurrentLocation.hashCode ^
+        isSnappedToRoad.hashCode;
   }
 
   @override
   String toString() {
-    return 'LocationEntity(coordinates: $coordinates, address: $address, name: $name, isCurrentLocation: $isCurrentLocation)';
+    return 'LocationEntity(coordinates: $coordinates, address: $address, name: $name, isCurrentLocation: $isCurrentLocation, isSnappedToRoad: $isSnappedToRoad)';
   }
 }

@@ -11,7 +11,7 @@ class RouteConstants {
   // Velocidad promedio para mototaxis en Arequipa (km/h)
   static const double averageSpeed = 35.0;
 
-  // Mensajes de error
+  // Mensajes de error ACTUALIZADOS
   static const String noRouteFoundError =
       'No se pudo encontrar una ruta viable';
   static const String networkError = 'Error de conexión al calcular ruta';
@@ -21,6 +21,15 @@ class RouteConstants {
   static const String tooFarError = 'La distancia es demasiado larga';
   static const String sameLocationError = 'Origen y destino son el mismo punto';
   static const String noRoadNearbyError = 'No hay calles vehiculares cercanas';
+
+  // NUEVOS MENSAJES ESPECÍFICOS
+  static const String noVehicleRouteError = 'No hay camino vehicular válido';
+  static const String selectDifferentPointsError =
+      'Selecciona otro punto de inicio y destino más cerca de calles principales';
+  static const String pedestrianOnlyError =
+      'Solo hay rutas peatonales disponibles en esta zona';
+  static const String overpassBackupFailedError =
+      'No se encontraron calles vehiculares en la zona seleccionada';
 
   // Configuración de polyline
   static const double routeStrokeWidth = 4.0;

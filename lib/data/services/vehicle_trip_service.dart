@@ -7,7 +7,7 @@ import 'package:trip_routing/src/utils/haversine.dart';
 class VehicleTripService extends TripService {
   VehicleTripService() : super();
 
-  // Sobreescribimos el método que hace la consulta a Overpass API para filtrar solo calles de vehículos
+  // CONSULTA ULTRA ESTRICTA - Solo calles vehiculares principales
   @override
   Future<List<Map<String, dynamic>>> _fetchWalkingPaths(
     double minLat,
@@ -23,21 +23,35 @@ class VehicleTripService extends TripService {
     minLon = clamp(minLon, -180, 180);
     maxLon = clamp(maxLon, -180, 180);
 
-    // Nueva consulta Overpass modificada para vehículos
-    // Incluimos solo vías que permitan vehículos y excluimos explícitamente las peatonales
+    // CONSULTA ULTRA ESTRICTA - EXCLUYE COMPLETAMENTE PEATONALES
     final query = '''
       [out:json];
       (
-        // Incluir SOLO vías para vehículos
+        // SOLO vías principales para vehículos motorizados
         way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|unclassified|service)\$"]
            ["motor_vehicle"!="no"]
-           ["foot"!="designated"]
+           ["vehicle"!="no"]
+           ["access"!="private"]
+           ["access"!="no"]
+           // EXCLUSIONES ESTRICTAS - NUNCA PEATONALES
            ["highway"!="pedestrian"]
-           ["highway"!="footway"]
+           ["highway"!="footway"] 
            ["highway"!="path"]
            ["highway"!="steps"]
+           ["highway"!="cycleway"]
+           ["highway"!="track"]
+           ["foot"!="designated"]
+           ["foot"!="only"]
+           ["pedestrian"!="only"]
+           ["bicycle"!="designated"]
+           ["bicycle"!="only"]
            ["area"!="yes"]
            ["place"!="square"]
+           ["leisure"!="park"]
+           ["amenity"!="parking"]
+           // ASEGURAR QUE ES PARA VEHÍCULOS
+           ["motor_vehicle"!="private"]
+           ["motorcar"!="no"]
            ($minLat, $minLon, $maxLat, $maxLon);
       );
       out body;
@@ -52,7 +66,47 @@ class VehicleTripService extends TripService {
         final rawData = jsonDecode(response.body) as Map<String, dynamic>;
         final elements = rawData['elements'];
         if (elements is List) {
-          return elements.map<Map<String, dynamic>>((e) {
+          // FILTRO ADICIONAL EN CÓDIGO - Doble verificación
+          final filteredElements =
+              elements.where((e) {
+                final tags = e['tags'] as Map<String, dynamic>? ?? {};
+                final highway = tags['highway'] as String?;
+
+                // Lista blanca de tipos de carretera permitidos
+                const allowedHighways = {
+                  'motorway',
+                  'trunk',
+                  'primary',
+                  'secondary',
+                  'tertiary',
+                  'residential',
+                  'unclassified',
+                  'service',
+                };
+
+                // Verificar que es un tipo permitido
+                if (highway == null || !allowedHighways.contains(highway)) {
+                  return false;
+                }
+
+                // Verificar que NO es exclusivo para peatones/bicicletas
+                final foot = tags['foot'] as String?;
+                final bicycle = tags['bicycle'] as String?;
+                final access = tags['access'] as String?;
+
+                if (foot == 'designated' ||
+                    foot == 'only' ||
+                    bicycle == 'designated' ||
+                    bicycle == 'only' ||
+                    access == 'private' ||
+                    access == 'no') {
+                  return false;
+                }
+
+                return true;
+              }).toList();
+
+          return filteredElements.map<Map<String, dynamic>>((e) {
             // Defensive extraction
             double safeDouble(dynamic v) {
               if (v is num && v.isFinite) return v.toDouble();
@@ -88,24 +142,27 @@ class VehicleTripService extends TripService {
         }
       }
     } catch (e) {
-      print("Error en consulta Overpass: $e");
+      print("Error en consulta Overpass ESTRICTA: $e");
     }
     return [];
   }
 
-  /// Verifica si un punto está en una carretera para vehículos
+  /// Verifica si un punto está en una carretera para vehículos (VERSIÓN ESTRICTA)
   Future<bool> isOnVehicleRoad(LatLng point) async {
     try {
       final query = '''
         [out:json];
         (
-          // Buscar carreteras para vehículos cerca del punto
+          // BUSCAR SOLO CALLES VEHICULARES PRINCIPALES
           way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|unclassified|service)\$"]
              ["motor_vehicle"!="no"]
-             ["foot"!="designated"]
+             ["vehicle"!="no"]
              ["highway"!="pedestrian"]
              ["highway"!="footway"]
              ["highway"!="path"]
+             ["highway"!="steps"]
+             ["foot"!="designated"]
+             ["foot"!="only"]
              (around:15, ${point.latitude}, ${point.longitude});
         );
         out body;
@@ -118,42 +175,43 @@ class VehicleTripService extends TripService {
         final rawData = jsonDecode(response.body) as Map<String, dynamic>;
         final elements = rawData['elements'] as List;
 
-        // Si encontramos al menos una carretera para vehículos, el punto es válido
+        // Si encontramos al menos una carretera vehicular ESTRICTA
         return elements.isNotEmpty;
       }
 
       return false;
     } catch (e) {
-      print("Error al verificar punto: $e");
+      print("Error al verificar punto vehicular: $e");
       return false;
     }
   }
 
-  /// Ajusta un punto al nodo de calle vehicular más cercana
+  /// Ajusta un punto al nodo de calle vehicular más cercana (VERSIÓN ESTRICTA)
   Future<LatLng> snapToVehicleRoad(LatLng point) async {
     try {
-      // Primero verificamos si el punto ya está en una carretera para vehículos
+      // Primero verificamos si el punto ya está en una carretera vehicular
       final bool isOnRoad = await isOnVehicleRoad(point);
       if (isOnRoad) {
-        return point; // Si ya está en una carretera, no necesitamos ajustarlo
+        return point;
       }
 
-      // Lista de radios de búsqueda (en metros) para intentar secuencialmente
-      final List<int> searchRadii = [15, 50, 150, 300, 500, 800, 1200];
+      // Radios progresivos para encontrar calles vehiculares
+      final List<int> searchRadii = [15, 50, 150, 300, 500];
 
-      // Intentar con cada radio hasta encontrar una calle
       for (final radius in searchRadii) {
-        // Buscar el nodo de carretera vehicular más cercano con el radio actual
         final query = '''
         [out:json];
         (
-          // Nodos que forman parte de calles para vehículos
+          // NODOS DE CALLES VEHICULARES PRINCIPALES ÚNICAMENTE
           way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|unclassified|service)\$"]
              ["motor_vehicle"!="no"]
-             ["foot"!="designated"]
+             ["vehicle"!="no"]
              ["highway"!="pedestrian"]
              ["highway"!="footway"]
              ["highway"!="path"]
+             ["highway"!="steps"]
+             ["foot"!="designated"]
+             ["foot"!="only"]
              (around:$radius, ${point.latitude}, ${point.longitude});
           node(w);
         );
@@ -168,7 +226,6 @@ class VehicleTripService extends TripService {
           final elements = rawData['elements'] as List;
 
           if (elements.isNotEmpty) {
-            // Encontrar el nodo más cercano
             LatLng closestNode = point;
             double minDistance = double.infinity;
 
@@ -194,59 +251,61 @@ class VehicleTripService extends TripService {
               }
             }
 
-            // Si encontramos un nodo cercano, lo usamos
             if (minDistance < double.infinity) {
               print(
-                "Punto ajustado a la carretera (distancia: ${minDistance.toStringAsFixed(2)}m, radio de búsqueda: ${radius}m)",
+                "✅ Punto ajustado a carretera vehicular (${minDistance.toStringAsFixed(0)}m)",
               );
               return closestNode;
             }
           }
         }
-
-        // Si llegamos aquí, no encontramos nada con este radio, intentamos con el siguiente
-        print(
-          "No se encontró carretera en radio de ${radius}m, intentando con radio mayor...",
-        );
       }
 
-      // Si después de intentar con todos los radios no encontramos nada,
-      // devolvemos el punto original y mostramos un mensaje de advertencia
-      print(
-        "ADVERTENCIA: No se pudo encontrar una calle cercana después de intentar con radios de hasta ${searchRadii.last}m",
+      // Si no encontramos NADA vehicular, lanzar excepción específica
+      throw Exception(
+        "No se encontraron calles vehiculares cerca del punto seleccionado",
       );
-      return point;
     } catch (e) {
-      print("Error al ajustar a calle: $e");
-      return point;
+      print("❌ Error ajustando a carretera vehicular: $e");
+      rethrow; // Re-lanzar para que sea manejado arriba
     }
   }
 
   @override
   Future<Trip> findTotalTrip(
     List<LatLng> waypoints, {
-    bool preferWalkingPaths = false, // Siempre false para vehículos
-    bool replaceWaypointsWithBuildingEntrances =
-        false, // No necesario para vehículos
-    bool forceIncludeWaypoints =
-        false, // No lo usaremos para evitar pasar por puntos no vehiculares
+    bool preferWalkingPaths = false,
+    bool replaceWaypointsWithBuildingEntrances = false,
+    bool forceIncludeWaypoints = false,
     double duplicationPenalty = 0.0,
   }) async {
-    // Primero ajustamos todos los waypoints a carreteras para vehículos
+    // Ajustar TODOS los waypoints a carreteras vehiculares ESTRICTAS
     List<LatLng> vehicleWaypoints = [];
+
     for (final waypoint in waypoints) {
-      final snappedPoint = await snapToVehicleRoad(waypoint);
-      vehicleWaypoints.add(snappedPoint);
+      try {
+        final snappedPoint = await snapToVehicleRoad(waypoint);
+        vehicleWaypoints.add(snappedPoint);
+      } catch (e) {
+        // Si no se puede ajustar algún waypoint, fallar inmediatamente
+        throw Exception("No se pudo ajustar punto a carretera vehicular: $e");
+      }
     }
 
-    // Llamamos al método original pero con opciones optimizadas para vehículos
-    return super.findTotalTrip(
+    // Llamar al método original con configuración ESTRICTA para vehículos
+    final trip = await super.findTotalTrip(
       vehicleWaypoints,
-      preferWalkingPaths:
-          false, // Aseguramos que nunca prefiera caminos peatonales
+      preferWalkingPaths: false, // NUNCA peatonal
       replaceWaypointsWithBuildingEntrances: false,
       forceIncludeWaypoints: false,
       duplicationPenalty: duplicationPenalty,
     );
+
+    // VALIDACIÓN FINAL - Verificar que la ruta no contiene segmentos peatonales
+    if (trip.route.isEmpty) {
+      throw Exception("No se generó ninguna ruta vehicular válida");
+    }
+
+    return trip;
   }
 }

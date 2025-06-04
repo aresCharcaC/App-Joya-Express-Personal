@@ -7,7 +7,7 @@ import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../viewmodels/map_viewmodel.dart';
 
-/// Bottom sheet para configurar tarifa del viaje (90% de pantalla)
+/// Bottom sheet para configurar tarifa del viaje (DISEÑO ACTUALIZADO)
 class TripOfferBottomSheet extends StatefulWidget {
   const TripOfferBottomSheet({super.key});
 
@@ -21,7 +21,6 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
 
   double _recommendedPrice = 0.0;
   double _userPrice = 0.0;
-  bool _isUsingRecommendedPrice = true;
 
   @override
   void initState() {
@@ -43,12 +42,10 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
       // Calcular precio recomendado: 3 soles base + 1 sol por km
       final distanceKm = mapViewModel.routeDistance;
       _recommendedPrice = 3.0 + (distanceKm * 1.0);
-
-      // Redondear a .5 más cercano para precios más amigables
       _recommendedPrice = ((_recommendedPrice * 2).round()) / 2;
 
       _userPrice = _recommendedPrice;
-      _priceController.text = _userPrice.toStringAsFixed(0);
+      _priceController.text = '';
     }
   }
 
@@ -57,23 +54,12 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
     if (price != null && price >= 0) {
       setState(() {
         _userPrice = price;
-        _isUsingRecommendedPrice = (price == _recommendedPrice);
       });
     }
   }
 
-  void _useRecommendedPrice() {
-    setState(() {
-      _userPrice = _recommendedPrice;
-      _isUsingRecommendedPrice = true;
-      _priceController.text = _userPrice.toStringAsFixed(0);
-    });
-  }
-
   void _confirmOffer() {
-    // TODO: Implementar lógica de búsqueda de mototaxi
     Navigator.pop(context);
-
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -92,59 +78,53 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
           return const SizedBox.shrink();
         }
 
-        return DraggableScrollableSheet(
-          initialChildSize: 0.9,
-          minChildSize: 0.5,
-          maxChildSize: 0.9,
-          builder: (context, scrollController) {
-            return Container(
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.9,
+          decoration: const BoxDecoration(
+            color: Color(0xFF2D2D2D), // Fondo oscuro como en la imagen
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: Column(
+            children: [
+              // Handle del bottom sheet
+              _buildHandle(),
+
+              // Contenido principal
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
+
+                      // Campo de precio grande (IGUAL AL DISEÑO)
+                      _buildPriceInputSection(),
+
+                      const SizedBox(height: 32),
+
+                      // Métodos de pago (IGUAL AL DISEÑO)
+                      _buildPaymentMethodsSection(),
+
+                      const SizedBox(height: 32),
+
+                      // Información de ruta (IGUAL AL DISEÑO)
+                      _buildRouteInfoSection(mapViewModel),
+
+                      const Spacer(),
+
+                      // Botón buscar mototaxi (IGUAL AL DISEÑO)
+                      _buildSearchButton(),
+
+                      const SizedBox(height: 20),
+                    ],
+                  ),
                 ),
               ),
-              child: Column(
-                children: [
-                  // Handle del bottom sheet
-                  _buildHandle(),
-
-                  // Contenido scrolleable
-                  Expanded(
-                    child: SingleChildScrollView(
-                      controller: scrollController,
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Sección de precio
-                          _buildPriceSection(),
-
-                          const SizedBox(height: 32),
-
-                          // Métodos de pago
-                          _buildPaymentMethodsSection(),
-
-                          const SizedBox(height: 32),
-
-                          // Información de la ruta
-                          _buildRouteInfoSection(mapViewModel),
-
-                          const SizedBox(height: 40),
-
-                          // Botón confirmar
-                          _buildConfirmButton(),
-
-                          const SizedBox(height: 20),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+            ],
+          ),
         );
       },
     );
@@ -156,167 +136,177 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
       width: 40,
       height: 4,
       decoration: BoxDecoration(
-        color: AppColors.grey.withOpacity(0.3),
+        color: AppColors.white.withOpacity(0.3),
         borderRadius: BorderRadius.circular(2),
       ),
     );
   }
 
-  Widget _buildPriceSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Campo de precio editable grande
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: AppColors.greyLight,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color:
-                  _priceFocusNode.hasFocus
-                      ? AppColors.primary
-                      : AppColors.border,
-              width: _priceFocusNode.hasFocus ? 2 : 1,
+  /// Campo de precio grande EXACTAMENTE como en la imagen
+  Widget _buildPriceInputSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF505050), // Gris más claro
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          // Campo de entrada de precio grande
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                'S/',
+                style: AppTextStyles.poppinsHeading1.copyWith(
+                  fontSize: 48,
+                  color: AppColors.white,
+                  fontWeight: FontWeight.w300,
+                ),
+              ),
+              Flexible(
+                child: IntrinsicWidth(
+                  child: TextField(
+                    controller: _priceController,
+                    focusNode: _priceFocusNode,
+                    style: AppTextStyles.poppinsHeading1.copyWith(
+                      fontSize: 64,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^\d{1,3}$')),
+                    ],
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      hintText: _recommendedPrice.toStringAsFixed(0),
+                      hintStyle: AppTextStyles.poppinsHeading1.copyWith(
+                        fontSize: 64,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.white.withOpacity(0.3),
+                      ),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    onChanged: _onPriceChanged,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Precio recomendado IGUAL AL DISEÑO
+          Text(
+            'Precio Recomendado: S/${_recommendedPrice.toStringAsFixed(0)}',
+            style: AppTextStyles.interBody.copyWith(
+              color: AppColors.white.withOpacity(0.7),
+              fontSize: 16,
             ),
           ),
-          child: Column(
+        ],
+      ),
+    );
+  }
+
+  /// Métodos de pago como botón centrado (SIN funcionalidad por ahora)
+  Widget _buildPaymentMethodsSection() {
+    return Center(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF505050),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.credit_card, color: AppColors.white, size: 24),
+            const SizedBox(width: 12),
+            Text(
+              'Métodos de Pago',
+              style: AppTextStyles.poppinsHeading3.copyWith(
+                color: AppColors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: AppColors.white.withOpacity(0.6),
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Información de ruta EXACTAMENTE como en la imagen
+  Widget _buildRouteInfoSection(MapViewModel mapViewModel) {
+    return Column(
+      children: [
+        // Punto de origen con ícono rojo
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF505050),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    'S/',
-                    style: AppTextStyles.poppinsHeading1.copyWith(
-                      fontSize: 48,
-                      color: AppColors.textSecondary,
-                    ),
+              // Ícono rojo de ubicación
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  mapViewModel.pickupLocation?.address ?? 'Av. Arequipa 112',
+                  style: AppTextStyles.interBody.copyWith(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w500,
                   ),
-                  Flexible(
-                    child: IntrinsicWidth(
-                      child: TextField(
-                        controller: _priceController,
-                        focusNode: _priceFocusNode,
-                        style: AppTextStyles.poppinsHeading1.copyWith(
-                          fontSize: 64,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                        textAlign: TextAlign.center,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(
-                            RegExp(r'^\d{1,3}$'),
-                          ),
-                        ],
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          hintText: '0',
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                        onChanged: _onPriceChanged,
-                      ),
-                    ),
-                  ),
-                ],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
         ),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
-        // Precio recomendado
-        GestureDetector(
-          onTap: _useRecommendedPrice,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color:
-                  _isUsingRecommendedPrice
-                      ? AppColors.primary.withOpacity(0.1)
-                      : AppColors.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color:
-                    _isUsingRecommendedPrice
-                        ? AppColors.primary
-                        : AppColors.border,
-                width: _isUsingRecommendedPrice ? 2 : 1,
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Precio Recomendado:',
-                      style: AppTextStyles.interBodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'S/${_recommendedPrice.toStringAsFixed(0)}',
-                      style: AppTextStyles.poppinsHeading3.copyWith(
-                        color:
-                            _isUsingRecommendedPrice
-                                ? AppColors.primary
-                                : AppColors.textPrimary,
-                      ),
-                    ),
-                  ],
-                ),
-                if (_isUsingRecommendedPrice)
-                  Icon(Icons.check_circle, color: AppColors.primary, size: 24)
-                else
-                  Text('Usar', style: AppTextStyles.interLink),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPaymentMethodsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.payment, color: AppColors.textPrimary, size: 20),
-            const SizedBox(width: 8),
-            Text('Métodos de Pago', style: AppTextStyles.poppinsHeading3),
-          ],
-        ),
-        const SizedBox(height: 16),
+        // Punto de destino con ícono rojo
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.greyLight,
+            color: const Color(0xFF505050),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
           ),
           child: Row(
             children: [
+              // Ícono rojo de ubicación (destino)
               Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.payments_outlined,
-                  color: AppColors.success,
-                  size: 20,
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: 12),
@@ -325,21 +315,25 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Efectivo',
+                      mapViewModel.destinationLocation?.address ??
+                          mapViewModel.destinationLocation?.name ??
+                          'Vivero Tecnoplants',
                       style: AppTextStyles.interBody.copyWith(
+                        color: AppColors.white,
                         fontWeight: FontWeight.w500,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      'Pago al conductor',
+                      'Cerca de ${mapViewModel.routeDistance.toStringAsFixed(1)}km',
                       style: AppTextStyles.interCaption.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.white.withOpacity(0.6),
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.check_circle, color: AppColors.success, size: 20),
             ],
           ),
         ),
@@ -347,111 +341,11 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
     );
   }
 
-  Widget _buildRouteInfoSection(MapViewModel mapViewModel) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Detalles del Viaje', style: AppTextStyles.poppinsHeading3),
-        const SizedBox(height: 16),
-
-        // Origen
-        _buildRoutePoint(
-          icon: Icons.trip_origin,
-          iconColor: AppColors.textPrimary,
-          title: 'Desde',
-          address:
-              mapViewModel.pickupLocation?.address ?? 'Ubicación de origen',
-        ),
-
-        const SizedBox(height: 12),
-
-        // Destino
-        _buildRoutePoint(
-          icon: Icons.place,
-          iconColor: AppColors.primary,
-          title: 'Hasta',
-          address:
-              mapViewModel.destinationLocation?.address ??
-              'Ubicación de destino',
-        ),
-
-        const SizedBox(height: 16),
-
-        // Información adicional
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.info.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.info.withOpacity(0.3)),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.info_outline, color: AppColors.info, size: 20),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Cerca de ${mapViewModel.routeDistance.toStringAsFixed(1)}km • ${mapViewModel.routeDuration} min aprox.',
-                  style: AppTextStyles.interBody.copyWith(
-                    color: AppColors.info,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRoutePoint({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String address,
-  }) {
-    return Row(
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: iconColor, size: 20),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: AppTextStyles.interCaption.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Text(
-                address,
-                style: AppTextStyles.interBody.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildConfirmButton() {
-    final isValidPrice = _userPrice >= 1.0 && _userPrice <= 999.0;
+  /// Botón de búsqueda IGUAL AL DISEÑO
+  Widget _buildSearchButton() {
+    final isValidPrice =
+        (_userPrice >= 1.0 && _userPrice <= 999.0) ||
+        _priceController.text.isEmpty;
 
     return SizedBox(
       width: double.infinity,
@@ -459,8 +353,7 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
       child: ElevatedButton(
         onPressed: isValidPrice ? _confirmOffer : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor:
-              isValidPrice ? AppColors.primary : AppColors.buttonDisabled,
+          backgroundColor: AppColors.primary,
           foregroundColor: AppColors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
@@ -470,8 +363,8 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
         child: Text(
           'Buscar Mototaxi',
           style: AppTextStyles.poppinsButton.copyWith(
-            color:
-                isValidPrice ? AppColors.white : AppColors.buttonTextDisabled,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),

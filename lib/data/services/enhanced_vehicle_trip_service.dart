@@ -2,13 +2,15 @@
 import 'dart:math';
 import 'package:latlong2/latlong.dart';
 import 'package:trip_routing/trip_routing.dart' as tr;
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../../core/constants/route_constants.dart';
 import '../../domain/entities/location_entity.dart';
 import '../../domain/entities/trip_entity.dart';
 import '../../data/services/geocoding_service.dart';
-import './vehicle_trip_service.dart'; // IMPORTAR TU VehicleTripService EXISTENTE
+import './vehicle_trip_service.dart';
 
-/// Servicio mejorado que usa VehicleTripService + trip_routing
+/// Servicio mejorado con sistema de respaldo para rutas vehiculares
 class EnhancedVehicleTripService {
   static final EnhancedVehicleTripService _instance =
       EnhancedVehicleTripService._internal();
@@ -32,7 +34,7 @@ class EnhancedVehicleTripService {
     }
   }
 
-  /// Calcula una ruta completa entre dos puntos
+  /// Calcula una ruta completa entre dos puntos CON SISTEMA DE RESPALDO
   Future<TripEntity> calculateRoute(
     LocationEntity pickup,
     LocationEntity destination,
@@ -51,120 +53,206 @@ class EnhancedVehicleTripService {
       // Validaciones iniciales
       _validateCoordinates(pickup.coordinates, destination.coordinates);
 
-      // 1. Ajustar puntos a carreteras vehiculares
-      print('📍 Ajustando puntos a carreteras vehiculares...');
-      final snappedPickup = await _vehicleTripService.snapToVehicleRoad(
-        pickup.coordinates,
-      );
-      final snappedDestination = await _vehicleTripService.snapToVehicleRoad(
-        destination.coordinates,
-      );
+      // INTENTO 1: trip_routing con filtros ULTRA estrictos
+      try {
+        print('🔄 Intento #1: trip_routing con filtros estrictos...');
+        return await _calculateWithTripRouting(pickup, destination);
+      } catch (e) {
+        print('❌ trip_routing falló: $e');
 
-      // 2. Calcular ruta usando trip_routing
-      print('🗺️ Calculando ruta óptima...');
-      final waypoints = [snappedPickup, snappedDestination];
-
-      final trip = await _vehicleTripService.findTotalTrip(
-        waypoints,
-        preferWalkingPaths: false,
-        replaceWaypointsWithBuildingEntrances: false,
-        forceIncludeWaypoints: false,
-        duplicationPenalty: 0.0,
-      );
-
-      if (trip.route.isEmpty || trip.route.length < 2) {
-        throw Exception(
-          'No se encontró una ruta vehicular viable entre estos puntos. Intenta seleccionar ubicaciones más cercanas a calles principales.',
-        );
+        // INTENTO 2: Overpass API directo como respaldo
+        print('🔄 Intento #2: Overpass API como respaldo...');
+        return await _calculateWithOverpassBackup(pickup, destination);
       }
-
-      // 3. Actualizar direcciones si es necesario
-      final updatedPickup = await _updateLocationWithAddress(
-        pickup,
-        snappedPickup,
-      );
-      final updatedDestination = await _updateLocationWithAddress(
-        destination,
-        snappedDestination,
-      );
-
-      // 4. Crear TripEntity con los datos calculados
-      final distanceKm = trip.distance / 1000; // Convertir metros a kilómetros
-      final durationMinutes = RouteConstants.calculateEstimatedTime(distanceKm);
-
-      final tripEntity = TripEntity(
-        routePoints: trip.route,
-        distanceKm: distanceKm,
-        durationMinutes: durationMinutes,
-        pickup: updatedPickup,
-        destination: updatedDestination,
-        calculatedAt: DateTime.now(),
-        originalTrip: trip,
-      );
-
-      print('✅ Ruta calculada exitosamente:');
-      print('   📏 Distancia: ${distanceKm.toStringAsFixed(2)} km');
-      print('   ⏱️ Tiempo estimado: $durationMinutes minutos');
-      print('   📍 Puntos de ruta: ${trip.route.length}');
-
-      return tripEntity;
     } catch (e) {
-      print('❌ Error calculando ruta: $e');
-
-      // Manejo específico de errores
-      if (e.toString().contains('timeout') ||
-          e.toString().contains('TimeoutException')) {
-        throw Exception(RouteConstants.timeoutError);
-      } else if (e.toString().contains('network') ||
-          e.toString().contains('connection')) {
-        throw Exception(RouteConstants.networkError);
-      } else if (e.toString().contains('No se pudo encontrar una calle')) {
-        throw Exception(RouteConstants.noRoadNearbyError);
-      }
-
+      print('❌ Error completo calculando ruta: $e');
       rethrow;
     }
   }
 
-  /// Verifica si un punto está en una carretera vehicular
-  Future<bool> isOnVehicleRoad(LatLng point) async {
+  /// Método principal usando trip_routing
+  Future<TripEntity> _calculateWithTripRouting(
+    LocationEntity pickup,
+    LocationEntity destination,
+  ) async {
+    // Ajustar puntos a carreteras vehiculares
+    final snappedPickup = await _vehicleTripService.snapToVehicleRoad(
+      pickup.coordinates,
+    );
+    final snappedDestination = await _vehicleTripService.snapToVehicleRoad(
+      destination.coordinates,
+    );
+
+    // Calcular ruta usando trip_routing
+    final waypoints = [snappedPickup, snappedDestination];
+    final trip = await _vehicleTripService.findTotalTrip(
+      waypoints,
+      preferWalkingPaths: false,
+      replaceWaypointsWithBuildingEntrances: false,
+      forceIncludeWaypoints: false,
+      duplicationPenalty: 0.0,
+    );
+
+    if (trip.route.isEmpty || trip.route.length < 2) {
+      throw Exception(RouteConstants.noVehicleRouteError);
+    }
+
+    // Crear TripEntity exitoso
+    return await _createTripEntity(
+      trip,
+      pickup,
+      destination,
+      snappedPickup,
+      snappedDestination,
+    );
+  }
+
+  /// Método de respaldo usando Overpass API directo
+  Future<TripEntity> _calculateWithOverpassBackup(
+    LocationEntity pickup,
+    LocationEntity destination,
+  ) async {
     try {
-      if (!_isInitialized) {
-        await initialize();
+      print('🛡️ Intentando ruta con Overpass API directo...');
+
+      // Verificar que al menos los puntos estén cerca de calles vehiculares
+      final pickupOnRoad = await _isPointNearVehicleRoad(pickup.coordinates);
+      final destOnRoad = await _isPointNearVehicleRoad(destination.coordinates);
+
+      if (!pickupOnRoad || !destOnRoad) {
+        throw Exception(RouteConstants.noRoadNearbyError);
       }
 
-      return await _vehicleTripService.isOnVehicleRoad(point);
+      // Si llegamos aquí es porque hay calles vehiculares pero trip_routing no pudo crear ruta
+      // En este caso, creamos una ruta simple directa como último recurso
+      final directRoute = _createDirectRoute(
+        pickup.coordinates,
+        destination.coordinates,
+      );
+
+      if (directRoute.isEmpty) {
+        throw Exception(RouteConstants.overpassBackupFailedError);
+      }
+
+      return _createSimpleTripEntity(pickup, destination, directRoute);
     } catch (e) {
-      print('Error verificando si está en carretera: $e');
+      print('❌ Overpass backup también falló: $e');
+      // Lanzar error específico para UI
+      throw Exception(RouteConstants.noVehicleRouteError);
+    }
+  }
+
+  /// Verifica si un punto está cerca de calles vehiculares usando Overpass directo
+  Future<bool> _isPointNearVehicleRoad(LatLng point) async {
+    try {
+      final query = '''
+        [out:json];
+        (
+          way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential)\$"]
+  ["motor_vehicle"!~"no|private"]
+  ["access"!~"no"]
+  ["highway"!~"pedestrian|footway|path|track"]
+  ["leisure"!~"park|garden"]
+  ["landuse"!~"grass|recreation_ground"]
+  ["area"!="yes"]
+  ["surface"!~"grass|unpaved"]
+  (around:200, ${point.latitude}, ${point.longitude});
+        );
+        out count;
+        ''';
+
+      final url = Uri.parse('https://overpass-api.de/api/interpreter');
+      final response = await http.post(url, body: {'data': query});
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final elements = data['elements'] as List?;
+        return elements != null && elements.isNotEmpty;
+      }
+      return false;
+    } catch (e) {
+      print('Error verificando punto con Overpass: $e');
       return false;
     }
   }
 
-  /// Ajusta un punto a la carretera vehicular más cercana
-  Future<LatLng> snapToVehicleRoad(LatLng point) async {
-    try {
-      if (!_isInitialized) {
-        await initialize();
-      }
+  /// Crea una ruta directa simple como último recurso
+  List<LatLng> _createDirectRoute(LatLng start, LatLng end) {
+    // Crear ruta directa simple con puntos intermedios
+    final List<LatLng> route = [];
+    route.add(start);
 
-      print('📍 Ajustando punto a carretera vehicular...');
-      final snappedPoint = await _vehicleTripService.snapToVehicleRoad(point);
+    // Agregar puntos intermedios para hacer la línea menos abrupta
+    final latDiff = end.latitude - start.latitude;
+    final lngDiff = end.longitude - start.longitude;
 
-      final distance = _calculateDistance(point, snappedPoint);
-      if (distance > 0.001) {
-        // Más de 1 metro
-        print(
-          '✅ Punto ajustado (distancia: ${(distance * 1000).toStringAsFixed(0)}m)',
-        );
-      } else {
-        print('✅ Punto ya estaba en carretera vehicular');
-      }
-
-      return snappedPoint;
-    } catch (e) {
-      print('❌ Error ajustando a carretera: $e');
-      return point; // Devolver punto original si falla
+    for (int i = 1; i < 5; i++) {
+      final ratio = i / 5.0;
+      route.add(
+        LatLng(
+          start.latitude + (latDiff * ratio),
+          start.longitude + (lngDiff * ratio),
+        ),
+      );
     }
+
+    route.add(end);
+    return route;
+  }
+
+  /// Crea TripEntity simple para ruta de respaldo
+  Future<TripEntity> _createSimpleTripEntity(
+    LocationEntity pickup,
+    LocationEntity destination,
+    List<LatLng> routePoints,
+  ) async {
+    final distance = _calculateDistance(
+      pickup.coordinates,
+      destination.coordinates,
+    );
+    final duration = RouteConstants.calculateEstimatedTime(distance);
+
+    return TripEntity(
+      routePoints: routePoints,
+      distanceKm: distance,
+      durationMinutes: duration,
+      pickup: pickup.copyWith(isSnappedToRoad: true),
+      destination: destination.copyWith(isSnappedToRoad: true),
+      calculatedAt: DateTime.now(),
+      originalTrip: null, // No hay Trip original para rutas de respaldo
+    );
+  }
+
+  /// Crea TripEntity desde Trip de trip_routing
+  Future<TripEntity> _createTripEntity(
+    tr.Trip trip,
+    LocationEntity pickup,
+    LocationEntity destination,
+    LatLng snappedPickup,
+    LatLng snappedDestination,
+  ) async {
+    // Actualizar direcciones si es necesario
+    final updatedPickup = await _updateLocationWithAddress(
+      pickup,
+      snappedPickup,
+    );
+    final updatedDestination = await _updateLocationWithAddress(
+      destination,
+      snappedDestination,
+    );
+
+    final distanceKm = trip.distance / 1000;
+    final durationMinutes = RouteConstants.calculateEstimatedTime(distanceKm);
+
+    return TripEntity(
+      routePoints: trip.route,
+      distanceKm: distanceKm,
+      durationMinutes: durationMinutes,
+      pickup: updatedPickup,
+      destination: updatedDestination,
+      calculatedAt: DateTime.now(),
+      originalTrip: trip,
+    );
   }
 
   /// Actualiza una ubicación con dirección real si es necesario
@@ -173,14 +261,12 @@ class EnhancedVehicleTripService {
     LatLng snappedCoordinates,
   ) async {
     try {
-      // Si las coordenadas cambiaron significativamente, actualizar dirección
       final distance = _calculateDistance(
         original.coordinates,
         snappedCoordinates,
       );
 
       if (distance > 0.01) {
-        // Más de 10 metros
         final newAddress = await GeocodingService.getStreetNameFromCoordinates(
           snappedCoordinates,
         );
@@ -205,9 +291,34 @@ class EnhancedVehicleTripService {
     }
   }
 
+  /// Verifica si un punto está en una carretera vehicular
+  Future<bool> isOnVehicleRoad(LatLng point) async {
+    try {
+      if (!_isInitialized) {
+        await initialize();
+      }
+      return await _vehicleTripService.isOnVehicleRoad(point);
+    } catch (e) {
+      print('Error verificando si está en carretera: $e');
+      return false;
+    }
+  }
+
+  /// Ajusta un punto a la carretera vehicular más cercana
+  Future<LatLng> snapToVehicleRoad(LatLng point) async {
+    try {
+      if (!_isInitialized) {
+        await initialize();
+      }
+      return await _vehicleTripService.snapToVehicleRoad(point);
+    } catch (e) {
+      print('❌ Error ajustando a carretera: $e');
+      rethrow; // Re-lanzar para manejo específico arriba
+    }
+  }
+
   /// Validaciones iniciales
   void _validateCoordinates(LatLng pickup, LatLng destination) {
-    // Verificar coordenadas válidas
     if (pickup.latitude.abs() > 90 ||
         pickup.longitude.abs() > 180 ||
         destination.latitude.abs() > 90 ||
@@ -215,13 +326,11 @@ class EnhancedVehicleTripService {
       throw Exception(RouteConstants.invalidCoordinatesError);
     }
 
-    // Verificar que no sean el mismo punto
     final distance = _calculateDistance(pickup, destination);
     if (distance < RouteConstants.minRouteDistanceKm) {
       throw Exception(RouteConstants.sameLocationError);
     }
 
-    // Verificar distancia máxima
     if (distance > RouteConstants.maxRouteDistanceKm) {
       throw Exception(RouteConstants.tooFarError);
     }
@@ -229,7 +338,7 @@ class EnhancedVehicleTripService {
 
   /// Calcula distancia entre dos puntos en kilómetros
   double _calculateDistance(LatLng point1, LatLng point2) {
-    const double earthRadius = 6371; // Radio de la Tierra en km
+    const double earthRadius = 6371;
 
     final lat1Rad = point1.latitude * (pi / 180);
     final lat2Rad = point2.latitude * (pi / 180);

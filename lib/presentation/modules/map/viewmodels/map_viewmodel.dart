@@ -16,7 +16,18 @@ enum MapState { loading, loaded, error }
 /// Estados de cálculo de ruta
 enum RouteState { idle, calculating, calculated, error }
 
-/// ViewModel principal para manejo del estado del mapa con rutas
+/// Tipos específicos de error de ruta
+enum RouteErrorType {
+  network,
+  noVehicleRoute,
+  noRoadNearby,
+  timeout,
+  tooFar,
+  sameLocation,
+  general,
+}
+
+/// ViewModel principal para manejo del estado del mapa con rutas MEJORADO
 class MapViewModel extends ChangeNotifier {
   final LocationService _locationService = LocationService();
   final RoutingRepository _routingRepository = RoutingRepositoryImpl();
@@ -25,24 +36,22 @@ class MapViewModel extends ChangeNotifier {
   MapState _state = MapState.loading;
   String? _errorMessage;
 
-  // Estado de rutas
+  // Estado de rutas MEJORADO
   RouteState _routeState = RouteState.idle;
   String? _routeErrorMessage;
+  RouteErrorType? _routeErrorType;
   TripEntity? _currentTrip;
 
   // Controlador del mapa
   final MapController mapController = MapController();
 
   // Ubicaciones
-  LocationEntity? _currentLocation; // Ubicación actual (punto azul fijo)
-  LocationEntity? _pickupLocation; // Pin negro móvil
+  LocationEntity? _currentLocation;
+  LocationEntity? _pickupLocation;
   LocationEntity? _destinationLocation;
 
   // Configuración del mapa
-  LatLng _currentCenter = const LatLng(
-    -16.4090,
-    -71.5375,
-  ); // Arequipa por defecto
+  LatLng _currentCenter = const LatLng(-16.4090, -71.5375);
   double _currentZoom = 15.0;
 
   // Getters principales
@@ -50,6 +59,7 @@ class MapViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   RouteState get routeState => _routeState;
   String? get routeErrorMessage => _routeErrorMessage;
+  RouteErrorType? get routeErrorType => _routeErrorType;
   TripEntity? get currentTrip => _currentTrip;
 
   LocationEntity? get currentLocation => _currentLocation;
@@ -72,6 +82,10 @@ class MapViewModel extends ChangeNotifier {
   bool get hasRoute =>
       _routeState == RouteState.calculated && _currentTrip != null;
   bool get hasRouteError => _routeState == RouteState.error;
+  bool get isNoVehicleRouteError =>
+      _routeErrorType == RouteErrorType.noVehicleRoute;
+  bool get isRetryableError => _routeErrorType != RouteErrorType.noVehicleRoute;
+
   List<LatLng> get routePoints => _currentTrip?.routePoints ?? [];
   double get routeDistance => _currentTrip?.distanceKm ?? 0.0;
   int get routeDuration => _currentTrip?.durationMinutes ?? 0;
@@ -81,17 +95,12 @@ class MapViewModel extends ChangeNotifier {
     try {
       _setState(MapState.loading);
 
-      // Obtener ubicación actual
       final currentLoc = await _locationService.getCurrentLocation();
 
       if (currentLoc != null) {
-        _currentLocation = currentLoc; // Punto azul fijo
-        _pickupLocation =
-            currentLoc
-                .copyWith(); // Pin negro inicialmente en la misma ubicación
+        _currentLocation = currentLoc;
+        _pickupLocation = currentLoc.copyWith();
         _currentCenter = currentLoc.coordinates;
-
-        // Centrar el mapa en la ubicación actual
         mapController.move(_currentCenter, _currentZoom);
       }
 
@@ -101,18 +110,16 @@ class MapViewModel extends ChangeNotifier {
     }
   }
 
-  /// Establecer punto de recogida tocando en el mapa (SOLO MUEVE EL PIN NEGRO)
+  /// Establecer punto de recogida tocando en el mapa
   Future<void> setPickupLocationFromTap(LatLng coordinates) async {
     try {
       final location = await _locationService.coordinatesToLocation(
         coordinates,
       );
       _pickupLocation = location;
-
-      // Limpiar ruta si existía
       _clearRoute();
-
       notifyListeners();
+
       print(
         'Punto de recogida establecido en: ${location.address ?? coordinates.toString()}',
       );
@@ -121,15 +128,12 @@ class MapViewModel extends ChangeNotifier {
     }
   }
 
-  /// Establecer ubicación actual como punto de recogida (MOVER PIN NEGRO A PUNTO AZUL)
+  /// Usar ubicación actual como punto de recogida
   Future<void> useCurrentLocationAsPickup() async {
     if (_currentLocation != null) {
       _pickupLocation = _currentLocation!.copyWith();
       mapController.move(_currentLocation!.coordinates, _currentZoom);
-
-      // Limpiar ruta si existía
       _clearRoute();
-
       notifyListeners();
     }
   }
@@ -145,7 +149,6 @@ class MapViewModel extends ChangeNotifier {
   void updateMapCenter(LatLng center, double zoom) {
     _currentCenter = center;
     _currentZoom = zoom;
-    // No notificamos aquí para evitar rebuilds constantes durante el movimiento
   }
 
   /// Establecer destino y calcular ruta automáticamente
@@ -153,13 +156,12 @@ class MapViewModel extends ChangeNotifier {
     _destinationLocation = destination;
     notifyListeners();
 
-    // Calcular ruta automáticamente si hay origen y destino
     if (hasPickupLocation && hasDestinationLocation) {
       await calculateRoute();
     }
   }
 
-  /// Calcular ruta vehicular
+  /// Calcular ruta vehicular CON MANEJO MEJORADO DE ERRORES
   Future<void> calculateRoute() async {
     if (!canCalculateRoute) return;
 
@@ -174,7 +176,7 @@ class MapViewModel extends ChangeNotifier {
         '📍 Hasta: ${_destinationLocation!.address ?? _destinationLocation!.coordinates.toString()}',
       );
 
-      // Calcular ruta usando el repositorio
+      // Calcular ruta usando el repositorio con sistema de respaldo
       final trip = await _routingRepository.calculateVehicleRoute(
         _pickupLocation!,
         _destinationLocation!,
@@ -196,7 +198,33 @@ class MapViewModel extends ChangeNotifier {
       print('   📍 ${trip.routePoints.length} puntos');
     } catch (e) {
       print('❌ Error calculando ruta: $e');
-      _setRouteError(_getErrorMessage(e.toString()));
+
+      // Determinar tipo de error y mensaje específico
+      final errorType = _categorizeError(e.toString());
+      final errorMessage = _getErrorMessage(e.toString());
+
+      _setRouteError(errorMessage, errorType);
+    }
+  }
+
+  /// Categoriza el tipo de error para manejo específico
+  RouteErrorType _categorizeError(String error) {
+    if (error.contains(RouteConstants.noVehicleRouteError) ||
+        error.contains(RouteConstants.overpassBackupFailedError) ||
+        error.contains(RouteConstants.pedestrianOnlyError)) {
+      return RouteErrorType.noVehicleRoute;
+    } else if (error.contains(RouteConstants.timeoutError)) {
+      return RouteErrorType.timeout;
+    } else if (error.contains(RouteConstants.networkError)) {
+      return RouteErrorType.network;
+    } else if (error.contains(RouteConstants.noRoadNearbyError)) {
+      return RouteErrorType.noRoadNearby;
+    } else if (error.contains(RouteConstants.tooFarError)) {
+      return RouteErrorType.tooFar;
+    } else if (error.contains(RouteConstants.sameLocationError)) {
+      return RouteErrorType.sameLocation;
+    } else {
+      return RouteErrorType.general;
     }
   }
 
@@ -207,7 +235,6 @@ class MapViewModel extends ChangeNotifier {
     try {
       final points = _currentTrip!.routePoints;
 
-      // Calcular bounds de la ruta
       double minLat = points.first.latitude;
       double maxLat = points.first.latitude;
       double minLng = points.first.longitude;
@@ -220,19 +247,16 @@ class MapViewModel extends ChangeNotifier {
         maxLng = math.max(maxLng, point.longitude);
       }
 
-      // Agregar padding
-      const padding = 0.005; // ~500m aproximadamente
+      const padding = 0.005;
       minLat -= padding;
       maxLat += padding;
       minLng -= padding;
       maxLng += padding;
 
-      // Calcular centro y zoom
       final centerLat = (minLat + maxLat) / 2;
       final centerLng = (minLng + maxLng) / 2;
       _currentCenter = LatLng(centerLat, centerLng);
 
-      // Calcular zoom basado en la extensión
       final latDiff = maxLat - minLat;
       final lngDiff = maxLng - minLng;
       final maxDiff = math.max(latDiff, lngDiff);
@@ -247,7 +271,6 @@ class MapViewModel extends ChangeNotifier {
         _currentZoom = 14;
       }
 
-      // Mover mapa
       mapController.move(_currentCenter, _currentZoom);
     } catch (e) {
       print('Error ajustando vista del mapa: $e');
@@ -267,18 +290,31 @@ class MapViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Limpiar todas las ubicaciones
-  void clearLocations() {
+  /// Limpiar todas las ubicaciones (NUEVO - Para errores de no hay ruta vehicular)
+  void clearAllLocations() {
     _pickupLocation = null;
     _destinationLocation = null;
     _clearRoute();
     notifyListeners();
+    print(
+      '🗑️ Ubicaciones limpiadas - Usuario puede seleccionar nuevos puntos',
+    );
   }
 
   /// Reintenta el cálculo de ruta
   Future<void> retryRouteCalculation() async {
     if (canCalculateRoute) {
       await calculateRoute();
+    }
+  }
+
+  /// Cerrar error de ruta (NUEVO)
+  void dismissRouteError() {
+    if (_routeState == RouteState.error) {
+      _routeState = RouteState.idle;
+      _routeErrorMessage = null;
+      _routeErrorType = null;
+      notifyListeners();
     }
   }
 
@@ -298,12 +334,14 @@ class MapViewModel extends ChangeNotifier {
   void _setRouteState(RouteState newState) {
     _routeState = newState;
     _routeErrorMessage = null;
+    _routeErrorType = null;
     notifyListeners();
   }
 
-  void _setRouteError(String error) {
+  void _setRouteError(String error, RouteErrorType errorType) {
     _routeState = RouteState.error;
     _routeErrorMessage = error;
+    _routeErrorType = errorType;
     notifyListeners();
   }
 
@@ -311,16 +349,18 @@ class MapViewModel extends ChangeNotifier {
     _currentTrip = null;
     _routeState = RouteState.idle;
     _routeErrorMessage = null;
+    _routeErrorType = null;
   }
 
   /// Obtener mensaje de error user-friendly
   String _getErrorMessage(String error) {
-    if (error.contains(RouteConstants.timeoutError)) {
+    if (error.contains(RouteConstants.noVehicleRouteError) ||
+        error.contains(RouteConstants.overpassBackupFailedError)) {
+      return RouteConstants.noVehicleRouteError;
+    } else if (error.contains(RouteConstants.timeoutError)) {
       return 'La conexión tardó demasiado. Intenta nuevamente.';
     } else if (error.contains(RouteConstants.networkError)) {
       return 'Sin conexión a internet. Verifica tu conexión.';
-    } else if (error.contains(RouteConstants.noRouteFoundError)) {
-      return 'No se encontró una ruta viable entre estos puntos.';
     } else if (error.contains(RouteConstants.noRoadNearbyError)) {
       return 'No hay calles cercanas. Selecciona otro punto.';
     } else if (error.contains(RouteConstants.tooFarError)) {

@@ -48,13 +48,13 @@ class LocationInputPanel extends StatelessWidget {
 
                   const SizedBox(height: 16),
 
-                  // Botón de tarifa (ACTUALIZADO)
+                  // Botón de tarifa (ACTUALIZADO con validación)
                   _buildTripOfferButton(context, mapViewModel),
 
                   const SizedBox(height: 12),
 
-                  // Botón principal
-                  _buildSearchButton(mapViewModel),
+                  // Botón principal (ACTUALIZADO con mensaje de desarrollo)
+                  _buildSearchButton(context, mapViewModel),
                 ],
               ),
             ),
@@ -147,16 +147,34 @@ class LocationInputPanel extends StatelessWidget {
     );
   }
 
-  /// Botón de tarifa (ACTUALIZADO - Muestra info de ruta cuando existe)
+  /// Botón de tarifa (ACTUALIZADO - Con validación de destino)
   Widget _buildTripOfferButton(
     BuildContext context,
     MapViewModel mapViewModel,
   ) {
     final bool hasRoute = mapViewModel.hasRoute;
+    final bool hasDestination = mapViewModel.hasDestinationLocation;
 
     return GestureDetector(
-      onTap:
-          hasRoute ? () => _showTripOfferBottomSheet(context) : onTripOfferTap,
+      onTap: () {
+        if (!hasDestination) {
+          // Mostrar mensaje si no hay destino
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Establece un destino primero'),
+              backgroundColor: AppColors.info,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          return;
+        }
+
+        if (hasRoute) {
+          _showTripOfferBottomSheet(context);
+        } else {
+          onTripOfferTap?.call();
+        }
+      },
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16),
@@ -218,15 +236,27 @@ class LocationInputPanel extends StatelessWidget {
     );
   }
 
-  /// Botón principal de búsqueda
-  Widget _buildSearchButton(MapViewModel mapViewModel) {
+  /// Botón principal de búsqueda (ACTUALIZADO - Mensaje de desarrollo)
+  Widget _buildSearchButton(BuildContext context, MapViewModel mapViewModel) {
     final bool canSearch = mapViewModel.canCalculateRoute;
 
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: canSearch ? onSearchMototaxiTap : null,
+        onPressed:
+            canSearch
+                ? () {
+                  // Mostrar mensaje de desarrollo en lugar de funcionalidad
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Función en desarrollo - Próximamente'),
+                      backgroundColor: AppColors.info,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+                : null,
         style: ElevatedButton.styleFrom(
           backgroundColor:
               canSearch ? AppColors.primary : AppColors.buttonDisabled,

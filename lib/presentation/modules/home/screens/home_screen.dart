@@ -1,153 +1,167 @@
 import 'package:flutter/material.dart';
-import 'package:joya_express/core/constants/app_colors.dart';
-import 'package:joya_express/core/constants/app_strings.dart';
-import 'package:joya_express/core/constants/app_text_styles.dart';
-import 'package:joya_express/presentation/modules/pasajero/profile/widgets/app_drawer.dart';
 import 'package:provider/provider.dart';
-import '../../auth/viewmodels/auth_viewmodel.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_text_styles.dart';
+import '../../pasajero/profile/widgets/app_drawer.dart';
+import '../viewmodels/map_viewmodel.dart';
+import '../widgets/map_view_widget.dart';
+import '../widgets/location_input_panel.dart';
+import 'destination_search_screen.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+/// Pantalla principal del mapa después del login
+class MapMainScreen extends StatefulWidget {
+  const MapMainScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<MapMainScreen> createState() => _MapMainScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _MapMainScreenState extends State<MapMainScreen> {
+  late MapViewModel _mapViewModel;
+
   @override
   void initState() {
     super.initState();
-    // Cargar datos del usuario al iniciar
+    _mapViewModel = Provider.of<MapViewModel>(context, listen: false);
+
+    // Inicializar mapa después del primer frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
-      if (authViewModel.currentUser == null) {
-        authViewModel.loadCurrentUser();
-      }
+      _mapViewModel.initializeMap();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 1,
-        shadowColor: AppColors.border,
-        title: Text(AppStrings.home, style: AppTextStyles.poppinsHeading3),
-        leading: Builder(
-          builder:
-              (context) => IconButton(
-                icon: const Icon(Icons.menu, color: AppColors.textPrimary),
-                onPressed: () => Scaffold.of(context).openDrawer(),
-              ),
-        ),
-      ),
+      backgroundColor: AppColors.surface,
+      // Drawer reutilizado de tu proyecto
       drawer: const AppDrawer(),
-      body: Consumer<AuthViewModel>(
-        builder: (context, authViewModel, child) {
-          if (authViewModel.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
-          }
+      body: Consumer<MapViewModel>(
+        builder: (context, mapViewModel, child) {
+          return Stack(
+            children: [
+              // Mapa de fondo (ocupa toda la pantalla)
+              const MapViewWidget(),
 
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.local_shipping,
-                    size: 80,
-                    color: AppColors.primary.withOpacity(0.7),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    AppStrings.welcome,
-                    style: AppTextStyles.poppinsHeading2,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 10),
-                  if (authViewModel.currentUser?.fullName != null)
-                    Text(
-                      '¡Hola, ${authViewModel.currentUser!.fullName}!',
-                      style: AppTextStyles.poppinsSubtitle,
-                      textAlign: TextAlign.center,
-                    ),
-                  const SizedBox(height: 40),
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.border.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 16),
+              // Header transparente con menú
+              _buildTransparentHeader(context),
 
-                        // NUEVO BOTÓN PARA IR AL MAPA
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.pushNamed(context, '/map');
-                          },
-                          icon: const Icon(Icons.map_outlined),
-                          label: const Text('Ir al Mapa'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: AppColors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 32,
-                              vertical: 16,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        // Botón placeholder original
-                        ElevatedButton(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Otras funciones en desarrollo'),
-                                backgroundColor: AppColors.info,
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.secondary,
-                            foregroundColor: AppColors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 32,
-                              vertical: 16,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text('Otras opciones'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              // Panel inferior con controles
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: LocationInputPanel(
+                  onDestinationTap: _handleDestinationTap,
+                  onTripOfferTap: _handleTripOfferTap,
+                  onSearchMototaxiTap: _handleSearchMototaxiTap,
+                ),
               ),
-            ),
+
+              // Overlay de error
+              if (mapViewModel.hasError) _buildErrorOverlay(mapViewModel),
+            ],
           );
         },
       ),
     );
   }
+
+  /// Header transparente con menú hamburguesa
+  Widget _buildTransparentHeader(BuildContext context) {
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              // Botón de menú
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface.withOpacity(0.9),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.menu, color: AppColors.textPrimary),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
+              ),
+              const Spacer(),
+              // Aquí podrías agregar más botones si necesitas
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Overlay de error
+  Widget _buildErrorOverlay(MapViewModel mapViewModel) {
+    return Positioned(
+      top: 100,
+      left: 20,
+      right: 20,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.error,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: AppColors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                mapViewModel.errorMessage ?? 'Ha ocurrido un error',
+                style: AppTextStyles.interBody.copyWith(color: AppColors.white),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: AppColors.white),
+              onPressed: () {
+                // Reintentar inicialización
+                _mapViewModel.initializeMap();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Manejar toque en campo destino
+  void _handleDestinationTap() {
+    // Navegar al modal de búsqueda de destino
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const DestinationSearchScreen(),
+    );
+  }
+
+  /// Manejar toque en botón de tarifa
+  void _handleTripOfferTap() {
+    // Ya no hace nada aquí, la validación se hace en LocationInputPanel
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Establece destino y espera que se calcule la ruta'),
+        backgroundColor: AppColors.info,
+      ),
+    );
+  }
+
+  /// Manejar búsqueda de mototaxi (en desarrollo)
+  void _handleSearchMototaxiTap() {}
 }

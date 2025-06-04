@@ -7,7 +7,7 @@ import '../../../../core/constants/route_constants.dart';
 import '../viewmodels/map_viewmodel.dart';
 import 'route_error_overlay.dart';
 
-/// Widget del mapa principal con soporte para rutas Y MANEJO MEJORADO DE ERRORES
+/// Widget del mapa principal con PINS CORREGIDOS (punta del palito marca posición)
 class MapViewWidget extends StatelessWidget {
   final VoidCallback? onCurrentLocationTap;
   final bool showCurrentLocationButton;
@@ -94,15 +94,19 @@ class MapViewWidget extends StatelessWidget {
                 onDismiss: () => mapViewModel.dismissRouteError(),
               ),
 
-            // Overlay de información de ruta
+            // Overlay de información de ruta (MOVIDO MÁS ABAJO)
             if (mapViewModel.hasRoute) _buildRouteInfoOverlay(mapViewModel),
+
+            // NUEVO: Indicador pequeño del punto de recogida
+            if (mapViewModel.hasPickupLocation)
+              _buildPickupIndicator(context, mapViewModel),
           ],
         );
       },
     );
   }
 
-  /// Construir marcadores del mapa
+  /// Construir marcadores del mapa CON PINS CORREGIDOS
   List<Marker> _buildMarkers(MapViewModel mapViewModel) {
     List<Marker> markers = [];
 
@@ -113,12 +117,13 @@ class MapViewWidget extends StatelessWidget {
           point: mapViewModel.currentLocation!.coordinates,
           width: 20,
           height: 20,
+          // SIN alignment para el punto azul (queda centrado)
           child: _buildCurrentLocationMarker(),
         ),
       );
     }
 
-    // Marcador de punto de recogida (pin negro móvil)
+    // Marcador de punto de recogida (pin negro móvil) - CORREGIDO
     if (mapViewModel.hasPickupLocation) {
       markers.add(
         Marker(
@@ -132,7 +137,7 @@ class MapViewWidget extends StatelessWidget {
       );
     }
 
-    // Marcador de destino
+    // Marcador de destino - CORREGIDO
     if (mapViewModel.hasDestinationLocation) {
       markers.add(
         Marker(
@@ -149,28 +154,32 @@ class MapViewWidget extends StatelessWidget {
     return markers;
   }
 
-  /// Marcador de punto de recogida (pin negro con palito)
+  /// Marcador de punto de recogida (pin negro con palito) - AJUSTADO CORRECTAMENTE
   Widget _buildPickupMarker(bool isSnapped) {
-    return Column(
-      children: [
-        Container(
-          width: 20,
-          height: 20,
-          decoration: BoxDecoration(
-            color: AppColors.textPrimary,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: isSnapped ? AppColors.success : AppColors.white,
-              width: 2,
+    return Transform.translate(
+      // ✅ MOVER EL PIN HACIA ARRIBA para que la punta toque la coordenada
+      offset: const Offset(0, -17.5), // La mitad de la altura (35/2)
+      child: Column(
+        children: [
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              color: AppColors.textPrimary,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isSnapped ? AppColors.success : AppColors.white,
+                width: 2,
+              ),
             ),
+            child:
+                isSnapped
+                    ? const Icon(Icons.check, color: AppColors.white, size: 12)
+                    : null,
           ),
-          child:
-              isSnapped
-                  ? const Icon(Icons.check, color: AppColors.white, size: 12)
-                  : null,
-        ),
-        Container(width: 2, height: 15, color: AppColors.textPrimary),
-      ],
+          Container(width: 2, height: 15, color: AppColors.textPrimary),
+        ],
+      ),
     );
   }
 
@@ -194,28 +203,32 @@ class MapViewWidget extends StatelessWidget {
     );
   }
 
-  /// Marcador de destino (pin rojo)
+  /// Marcador de destino (pin rojo) - AJUSTADO CORRECTAMENTE
   Widget _buildDestinationMarker(bool isSnapped) {
-    return Column(
-      children: [
-        Container(
-          width: 20,
-          height: 20,
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: isSnapped ? AppColors.success : AppColors.white,
-              width: 2,
+    return Transform.translate(
+      // ✅ MOVER EL PIN HACIA ARRIBA para que la punta toque la coordenada
+      offset: const Offset(0, -17.5), // La mitad de la altura (35/2)
+      child: Column(
+        children: [
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isSnapped ? AppColors.success : AppColors.white,
+                width: 2,
+              ),
             ),
+            child:
+                isSnapped
+                    ? const Icon(Icons.check, color: AppColors.white, size: 12)
+                    : null,
           ),
-          child:
-              isSnapped
-                  ? const Icon(Icons.check, color: AppColors.white, size: 12)
-                  : null,
-        ),
-        Container(width: 2, height: 15, color: AppColors.primary),
-      ],
+          Container(width: 2, height: 15, color: AppColors.primary),
+        ],
+      ),
     );
   }
 
@@ -288,10 +301,10 @@ class MapViewWidget extends StatelessWidget {
     );
   }
 
-  /// Overlay de información de ruta (esquina superior)
+  /// Overlay de información de ruta (MOVIDO MÁS ABAJO)
   Widget _buildRouteInfoOverlay(MapViewModel mapViewModel) {
     return Positioned(
-      top: 60,
+      top: 120, // CAMBIADO: Más abajo para no chocar con el menú
       left: 20,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -327,6 +340,47 @@ class MapViewWidget extends StatelessWidget {
               style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// NUEVO: Indicador pequeño del punto de recogida (cerca del pin negro)
+  Widget _buildPickupIndicator(
+    BuildContext context,
+    MapViewModel mapViewModel,
+  ) {
+    return Positioned(
+      top:
+          MediaQuery.of(context).size.height *
+          0.25, // Posición aproximada del pin
+      left: 20,
+      right: 20,
+      child: Center(
+        child: Transform.translate(
+          offset: const Offset(0, -40), // Mover hacia arriba del pin
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.surface.withOpacity(0.95),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              'Punto de recogida',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
+                fontSize: 10, // TAMAÑO MÁS PEQUEÑO
+              ),
+            ),
+          ),
         ),
       ),
     );

@@ -9,7 +9,7 @@ import '../../../../data/services/location_service.dart';
 import '../widgets/map_view_widget.dart';
 import '../viewmodels/map_viewmodel.dart';
 
-/// Pantalla para seleccionar destino tocando en el mapa (MENOS SENSIBLE)
+/// Pantalla para seleccionar destino tocando en el mapa CON PINS CORREGIDOS
 class MapSelectionScreen extends StatefulWidget {
   const MapSelectionScreen({super.key});
 
@@ -55,7 +55,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                     maxZoom: 18,
                   ),
 
-                  // Marcadores
+                  // Marcadores CON PINS CORREGIDOS
                   MarkerLayer(markers: _buildMarkers(mapViewModel)),
                 ],
               ),
@@ -75,7 +75,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
     );
   }
 
-  /// Construir marcadores del mapa
+  /// Construir marcadores del mapa CON PINS CORREGIDOS
   List<Marker> _buildMarkers(MapViewModel mapViewModel) {
     List<Marker> markers = [];
 
@@ -86,12 +86,13 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
           point: mapViewModel.currentLocation!.coordinates,
           width: 20,
           height: 20,
+          // SIN alignment para el punto azul (queda centrado)
           child: _buildCurrentLocationMarker(),
         ),
       );
     }
 
-    // Marcador de punto de recogida (pin negro)
+    // Marcador de punto de recogida (pin negro) - CORREGIDO
     if (mapViewModel.hasPickupLocation) {
       markers.add(
         Marker(
@@ -103,7 +104,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
       );
     }
 
-    // Marcador de destino seleccionado temporalmente
+    // Marcador de destino seleccionado temporalmente - CORREGIDO
     if (_selectedLocation != null) {
       markers.add(
         Marker(
@@ -138,39 +139,47 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
     );
   }
 
-  /// Marcador de punto de recogida (pin negro)
+  /// Marcador de punto de recogida (pin negro) - AJUSTADO CORRECTAMENTE
   Widget _buildPickupMarker() {
-    return Column(
-      children: [
-        Container(
-          width: 20,
-          height: 20,
-          decoration: BoxDecoration(
-            color: AppColors.textPrimary,
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.white, width: 2),
+    return Transform.translate(
+      // ✅ MOVER EL PIN HACIA ARRIBA para que la punta toque la coordenada
+      offset: const Offset(0, -17.5), // La mitad de la altura (35/2)
+      child: Column(
+        children: [
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              color: AppColors.textPrimary,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.white, width: 2),
+            ),
           ),
-        ),
-        Container(width: 2, height: 15, color: AppColors.textPrimary),
-      ],
+          Container(width: 2, height: 15, color: AppColors.textPrimary),
+        ],
+      ),
     );
   }
 
-  /// Marcador de destino (pin rojo)
+  /// Marcador de destino (pin rojo) - AJUSTADO CORRECTAMENTE
   Widget _buildDestinationMarker() {
-    return Column(
-      children: [
-        Container(
-          width: 20,
-          height: 20,
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.white, width: 2),
+    return Transform.translate(
+      // ✅ MOVER EL PIN HACIA ARRIBA para que la punta toque la coordenada
+      offset: const Offset(0, -17.5), // La mitad de la altura (35/2)
+      child: Column(
+        children: [
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.white, width: 2),
+            ),
           ),
-        ),
-        Container(width: 2, height: 15, color: AppColors.primary),
-      ],
+          Container(width: 2, height: 15, color: AppColors.primary),
+        ],
+      ),
     );
   }
 

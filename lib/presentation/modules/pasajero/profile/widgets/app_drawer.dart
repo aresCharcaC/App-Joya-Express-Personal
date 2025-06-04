@@ -23,19 +23,16 @@ class AppDrawer extends StatelessWidget {
       backgroundColor: AppColors.surface,
       child: Column(
         children: [
-
           // Cabecera del Drawer con información del usuario (foto, nombre, teléfono)
           Consumer<AuthViewModel>(
             builder: (context, authViewModel, child) {
-              return CustomDrawerHeader(
-                user: authViewModel.currentUser,
-              );
+              return CustomDrawerHeader(user: authViewModel.currentUser);
             },
           ),
-          
+
           // Espaciado
           const SizedBox(height: 20),
-          
+
           // Opciones del menú
           Expanded(
             child: ListView(
@@ -93,11 +90,13 @@ class AppDrawer extends StatelessWidget {
       ),
     );
   }
+
   /// Navega a la pantalla de perfil del usuario
   void _navigateToProfile(BuildContext context) {
     Navigator.pop(context); // Cerrar drawer
     Navigator.pushNamed(context, '/profile');
   }
+
   /// Navega a métodos de pago (aún no implementado, muestra mensaje)
 
   void _navigateToPaymentMethods(BuildContext context) {
@@ -107,44 +106,39 @@ class AppDrawer extends StatelessWidget {
       const SnackBar(content: Text('Métodos de pago - Próximamente')),
     );
   }
+
   /// Navega al historial (aún no implementado, muestra mensaje)
 
   void _navigateToHistory(BuildContext context) {
     Navigator.pop(context);
-    // TODO: Implementar navegación al historial
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Historial - Próximamente')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Historial - Próximamente')));
   }
+
   /// Navega a configuración (aún no implementado, muestra mensaje)
 
   void _navigateToConfiguration(BuildContext context) {
     Navigator.pop(context);
-    // TODO: Implementar navegación a configuración
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Configuración - Próximamente')),
     );
   }
+
   /// Muestra el diálogo de confirmación para cerrar sesión
 
   void _showLogoutDialog(BuildContext context) {
     Navigator.pop(context); // Cerrar drawer primero
-    
-    ConfirmationDialog.showLogoutDialog(
-      context,
-      () => _performLogout(context),
-    );
+
+    ConfirmationDialog.showLogoutDialog(context, () => _performLogout(context));
   }
+
   /// Realiza el logout y navega a la pantalla de login
   void _performLogout(BuildContext context) {
     final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
     authViewModel.logout().then((_) {
       // Navegar al login y limpiar el stack
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/login',
-        (route) => false,
-      );
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     });
   }
 }

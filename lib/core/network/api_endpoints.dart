@@ -1,7 +1,7 @@
 class ApiEndpoints {
   // Base URL
   static const String baseUrl =
-      'https://f189-2a09-bac1-5900-18-00-c1-32.ngrok-free.app'; //Remplazar diariamente
+      'https://b8de-2a09-bac5-4f33-791-00-c1-84.ngrok-free.app'; //Remplazar diariamente
 
   // Auth endpoints
   static const String sendCode = '/api/auth/send-code';

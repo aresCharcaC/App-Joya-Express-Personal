@@ -195,28 +195,39 @@ class VehicleTripService extends TripService {
         return point;
       }
 
-      // Radios progresivos para encontrar calles vehiculares
-      final List<int> searchRadii = [15, 50, 150, 300, 500];
+      // ✅ RADIOS MÁS PEQUEÑOS Y MÁS ESTRICTOS
+      final List<int> searchRadii = [
+        10,
+        25,
+        50,
+        100,
+        200,
+      ]; // Radios más pequeños
 
       for (final radius in searchRadii) {
         final query = '''
-        [out:json];
-        (
-          // NODOS DE CALLES VEHICULARES PRINCIPALES ÚNICAMENTE
-          way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|unclassified|service)\$"]
-             ["motor_vehicle"!="no"]
-             ["vehicle"!="no"]
-             ["highway"!="pedestrian"]
-             ["highway"!="footway"]
-             ["highway"!="path"]
-             ["highway"!="steps"]
-             ["foot"!="designated"]
-             ["foot"!="only"]
-             (around:$radius, ${point.latitude}, ${point.longitude});
-          node(w);
-        );
-        out body;
-        ''';
+      [out:json];
+      (
+        // SOLO CALLES PRINCIPALES Y SECUNDARIAS (más estricto)
+        way["highway"~"^(primary|secondary|tertiary|residential|unclassified)\$"]
+           ["motor_vehicle"!="no"]
+           ["vehicle"!="no"]
+           ["access"!="private"]
+           ["access"!="no"]
+           ["highway"!="pedestrian"]
+           ["highway"!="footway"]
+           ["highway"!="path"]
+           ["highway"!="steps"]
+           ["highway"!="service"]  // ✅ Excluir calles de servicio
+           ["foot"!="designated"]
+           ["foot"!="only"]
+           ["bicycle"!="designated"]
+           ["bicycle"!="only"]
+           (around:$radius, ${point.latitude}, ${point.longitude});
+        node(w);
+      );
+      out body;
+      ''';
 
         final url = Uri.parse('https://overpass-api.de/api/interpreter');
         final response = await http.post(url, body: {'data': query});
@@ -253,7 +264,7 @@ class VehicleTripService extends TripService {
 
             if (minDistance < double.infinity) {
               print(
-                "✅ Punto ajustado a carretera vehicular (${minDistance.toStringAsFixed(0)}m)",
+                "✅ Punto ajustado a calle principal (${minDistance.toStringAsFixed(0)}m)",
               );
               return closestNode;
             }
@@ -261,13 +272,13 @@ class VehicleTripService extends TripService {
         }
       }
 
-      // Si no encontramos NADA vehicular, lanzar excepción específica
+      // ✅ SI NO ENCUENTRA NADA, FALLAR CON MENSAJE CLARO
       throw Exception(
-        "No se encontraron calles vehiculares cerca del punto seleccionado",
+        "No se encontraron calles principales cerca del punto. Selecciona un punto más cerca de avenidas o calles principales.",
       );
     } catch (e) {
-      print("❌ Error ajustando a carretera vehicular: $e");
-      rethrow; // Re-lanzar para que sea manejado arriba
+      print("❌ Error ajustando a carretera principal: $e");
+      rethrow;
     }
   }
 

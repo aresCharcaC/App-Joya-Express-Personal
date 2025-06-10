@@ -11,8 +11,9 @@ class ApiClient {
   ApiClient._internal();
 
   final http.Client _client = http.Client();
-  
-  // GET Request
+  String? _sessionCookies; // Para almacenar las cookies de sesión
+
+  // GET Request con manejo de cookies
   Future<Map<String, dynamic>> get(String endpoint) async {
     try {
       final headers = await _getHeaders();
@@ -21,15 +22,16 @@ class ApiClient {
         headers: headers,
       ).timeout(const Duration(seconds: 30));
 
+      _handleCookies(response); // Procesar cookies de respuesta
       return _handleResponse(response);
     } catch (e) {
       throw _handleError(e);
     }
   }
 
-  // POST Request
+  // POST Request con manejo de cookies
   Future<Map<String, dynamic>> post(
-    String endpoint, 
+    String endpoint,
     Map<String, dynamic> body
   ) async {
     try {
@@ -40,45 +42,142 @@ class ApiClient {
         body: json.encode(body),
       ).timeout(const Duration(seconds: 30));
 
+      _handleCookies(response); // Procesar cookies de respuesta
       return _handleResponse(response);
     } catch (e) {
       throw _handleError(e);
     }
   }
 
-  // Obtener headers con token si existe
+  // PUT Request con manejo de cookies
+  Future<Map<String, dynamic>> put(
+    String endpoint,
+    Map<String, dynamic> body,
+  ) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await _client.put(
+        Uri.parse('${ApiEndpoints.baseUrl}$endpoint'),
+        headers: headers,
+        body: json.encode(body),
+      ).timeout(const Duration(seconds: 30));
+
+      _handleCookies(response);
+      return _handleResponse(response);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // PATCH Request con manejo de cookies
+  Future<Map<String, dynamic>> patch(
+    String endpoint,
+    Map<String, dynamic> body,
+  ) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await _client.patch(
+        Uri.parse('${ApiEndpoints.baseUrl}$endpoint'),
+        headers: headers,
+        body: json.encode(body),
+      ).timeout(const Duration(seconds: 30));
+
+      _handleCookies(response);
+      return _handleResponse(response);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // Obtener headers con cookies de sesión
   Future<Map<String, String>> _getHeaders() async {
-    final headers = Map<String, String>.from(ApiEndpoints.defaultHeaders);
+    final headers = Map<String, String>.from(ApiEndpoints.jsonHeaders);
     
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('access_token');
-    
-    if (token != null) {
-      headers['Authorization'] = 'Bearer $token';
+    // Agregar cookies de sesión si existen
+    if (_sessionCookies != null) {
+      headers['Cookie'] = _sessionCookies!;
     }
     
     return headers;
   }
 
-  // Manejar respuestas HTTP
+  // Procesar cookies de respuesta del servidor
+  void _handleCookies(http.Response response) {
+    final cookies = response.headers['set-cookie'];
+    if (cookies != null) {
+      // Parsear y almacenar cookies
+      final cookieList = cookies.split(',');
+      final sessionCookies = <String>[];
+      
+      for (final cookie in cookieList) {
+        final cookieParts = cookie.trim().split(';');
+        if (cookieParts.isNotEmpty) {
+          final cookieNameValue = cookieParts[0];
+          if (cookieNameValue.contains('accessToken') || 
+              cookieNameValue.contains('refreshToken')) {
+            sessionCookies.add(cookieNameValue);
+          }
+        }
+      }
+      
+      if (sessionCookies.isNotEmpty) {
+        _sessionCookies = sessionCookies.join('; ');
+        _saveCookiesToStorage();
+      }
+    }
+  }
+
+  // Guardar cookies en almacenamiento local
+  Future<void> _saveCookiesToStorage() async {
+    if (_sessionCookies != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('session_cookies', _sessionCookies!);
+    }
+  }
+
+  // Cargar cookies desde almacenamiento local
+  Future<void> loadCookiesFromStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    _sessionCookies = prefs.getString('session_cookies');
+  }
+
+  // Limpiar cookies de sesión
+  Future<void> clearCookies() async {
+    _sessionCookies = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('session_cookies');
+  }
+
   Map<String, dynamic> _handleResponse(http.Response response) {
-    final statusCode = response.statusCode;
-    
-    if (statusCode >= 200 && statusCode < 300) {
-      try {
-        return json.decode(response.body) as Map<String, dynamic>;
-      } catch (e) {
+  final statusCode = response.statusCode;
+
+  if (statusCode >= 200 && statusCode < 300) {
+    try {
+      if (response.body.isEmpty) {
+        // Si el cuerpo está vacío, devuelve un mapa vacío
+        return {};
+      }
+      final decoded = json.decode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      } else {
         throw ApiException(
-          message: 'Error al procesar respuesta del servidor',
+          message: 'Respuesta inesperada del servidor (no es un objeto JSON)',
           statusCode: statusCode,
         );
       }
-    } else {
-      _handleHttpError(response);
+    } catch (e) {
+      throw ApiException(
+        message: 'Error al procesar respuesta del servidor',
+        statusCode: statusCode,
+      );
     }
-    
-    throw ApiException(message: 'Respuesta inesperada del servidor');
+  } else {
+    _handleHttpError(response);
   }
+
+  throw ApiException(message: 'Respuesta inesperada del servidor');
+}
 
   // Manejar errores HTTP específicos
   void _handleHttpError(http.Response response) {
@@ -96,6 +195,7 @@ class ApiClient {
       case 400:
         throw ValidationException(message: message);
       case 401:
+        // Token expirado, intentar refresh automáticamente
         throw AuthException(message: message);
       case 403:
         throw AuthException(message: 'Acceso denegado');

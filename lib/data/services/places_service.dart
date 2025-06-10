@@ -68,6 +68,17 @@ class PlacesService {
       isPopular: true,
     ),
     PlaceEntity(
+
+      id: 'tecsup',
+      name: 'TECSUP Arequipa',
+      description: 'Instituto de Educación Superior TECSUP Arequipa',
+      coordinates: const LatLng(-16.428664, -71.519649),
+      category: 'Educación',
+      isPopular: true,
+    ),
+
+    PlaceEntity(
+
       id: 'ucsm',
       name: 'Universidad Católica Santa María',
       description: 'UCSM - Campus principal',

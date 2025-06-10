@@ -1,12 +1,17 @@
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-// ========== AUTENTICACIÓN REAL - VERSIÓN FINAL ==========
 import 'package:joya_express/core/network/api_client.dart';
 import 'package:joya_express/data/datasources/auth_local_datasource.dart';
 import 'package:joya_express/data/datasources/auth_remote_datasource.dart';
 import 'package:joya_express/data/repositories_impl/auth_repository_impl.dart';
-import 'package:joya_express/presentation/modules/auth/viewmodels/auth_viewmodel.dart';
+import 'package:joya_express/presentation/modules/auth/Driver/viewmodels/driver_auth_viewmodel.dart';
+import 'package:joya_express/presentation/modules/auth/Driver/viewmodels/driver_home_viewmodel.dart';
+import 'package:joya_express/presentation/modules/auth/Passenger/viewmodels/auth_viewmodel.dart';
 import 'package:joya_express/presentation/modules/home/viewmodels/map_viewmodel.dart';
 import 'package:joya_express/data/services/enhanced_vehicle_trip_service.dart';
+import 'package:joya_express/data/services/dio_config.dart';
+import 'package:joya_express/core/di/service_locator.dart';
 import 'package:provider/provider.dart';
 import 'presentation/modules/routes/app_routes.dart';
 
@@ -14,7 +19,44 @@ void main() async {
   // Asegurarse de que los bindings de Flutter estén inicializados
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ========== CONFIGURACIÓN REAL CON SERVIDOR ==========
+
+  // ========== CONFIGURACIÓN DE DEBUG COMPLETO ==========
+  // Capturar todos los errores de Flutter
+  FlutterError.onError = (FlutterErrorDetails details) {
+    print('🔥 FLUTTER ERROR CAPTURADO:');
+    print('Exception: ${details.exception}');
+    print('Library: ${details.library}');
+    print('Context: ${details.context}');
+    print('Stack trace:');
+    print(details.stack);
+    print('==========================================');
+    
+    // En modo debug, también mostrar en pantalla roja
+    if (kDebugMode) {
+      FlutterError.presentError(details);
+    }
+  };
+
+  // Capturar errores asincrónicos no manejados
+  PlatformDispatcher.instance.onError = (error, stack) {
+    print('🔥 ERROR ASÍNCRONO NO MANEJADO:');
+    print('Error: $error');
+    print('Stack trace:');
+    print(stack);
+    print('==========================================');
+    return true;
+  };
+  // ===================================================
+
+  // ========== INICIALIZAR DEPENDENCIAS INYECTADAS ==========
+  print('🔧 Inicializando sistema de inyección de dependencias...');
+  await initializeDependencies();
+  diagnosticDependencies();
+  print('✅ Sistema de inyección configurado');
+  // =========================================================
+
+
+  // ========== CONFIGURACIÓN MANUAL DE AUTH (LEGACY) ==========
   print('🚀 Iniciando Joya Express con autenticación REAL...');
 
   final apiClient = ApiClient();
@@ -27,40 +69,66 @@ void main() async {
     localDataSource: localDataSource,
   );
 
-  print('✅ Repositorio de autenticación configurado');
-  // ===================================================
+  print('✅ Repositorio de autenticación configurado (manual)');
+  // ===========================================================
+
 
   // ========== INICIALIZACIÓN DE SERVICIOS DE RUTA ==========
   try {
     await EnhancedVehicleTripService().initialize();
     print('✅ Servicios de ruta inicializados correctamente');
-  } catch (e) {
+  } catch (e, stackTrace) {
     print('❌ Error inicializando servicios de ruta: $e');
-    // La app puede continuar, pero las rutas no funcionarán perfectamente
+    print('Stack trace: $stackTrace');
   }
   // =========================================================
 
-  // ========== INICIALIZACIÓN DE AUTENTICACIÓN ==========
+  // ========== INICIALIZACIÓN DE AUTENTICACIÓN MANUAL ==========
   final authViewModel = AuthViewModel(authRepository: authRepository);
-
+  
+  try {
+    await authViewModel.loadCurrentUser();
+    print('✅ Usuario actual cargado');
+  } catch (e, stackTrace) {
+    print('⚠️ Error cargando usuario actual: $e');
+    print('Stack trace: $stackTrace');
+  }
   try {
     await authViewModel.initializeFromPersistedState();
     print('✅ Estado de autenticación inicializado');
-  } catch (e) {
+  } catch (e, stackTrace) {
     print('⚠️ No hay estado previo de autenticación: $e');
+    print('Stack trace: $stackTrace');
   }
+  // ============================================================
+  
   // ====================================================
+
 
   // ========== INICIAR APLICACIÓN ==========
   runApp(
     MultiProvider(
       providers: [
+
+        // ========== PROVIDERS MANUALES (LEGACY) ==========
         // Provider de autenticación con repositorio real
-        ChangeNotifierProvider(
-          create: (_) => AuthViewModel(authRepository: authRepository),
-        ),
+        ChangeNotifierProvider.value(value: authViewModel), 
+        
         // Provider del mapa
         ChangeNotifierProvider(create: (_) => MapViewModel()),
+        
+        // DriverHomeViewModel (manual)
+        ChangeNotifierProvider(
+          create: (_) => DriverHomeViewModel(),
+        ),
+        // =================================================
+
+        // ========== PROVIDERS CON INYECCIÓN DE DEPENDENCIAS ==========
+        // DriverAuthViewModel usando service locator
+        ChangeNotifierProvider<DriverAuthViewModel>.value(
+          value: sl<DriverAuthViewModel>(),
+        ),
+        // =============================================================
       ],
       child: const MyApp(),
     ),
@@ -71,9 +139,24 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
+  
   @override
   Widget build(BuildContext context) {
+    // Obténemos los ViewModels del Provider
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: true);
+    final driverAuthViewModel = Provider.of<DriverAuthViewModel>(context, listen: true);
+    final driverHomeViewModel = Provider.of<DriverHomeViewModel>(context, listen: true);
+
+    // Lógica para decidir la ruta inicial
+    String initialRoute;
+    if (driverAuthViewModel.isAuthenticated) {
+      initialRoute = AppRoutes.driverHome;
+    } else if (authViewModel.isAuthenticated) {
+      initialRoute = AppRoutes.home;
+    } else {
+      initialRoute = AppRoutes.welcome;
+    }
+
     return MaterialApp(
       title: 'Joya Express',
       debugShowCheckedModeBanner: false,
@@ -91,7 +174,11 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute: AppRoutes.welcome,
+      // initialRoute: initialRoute, // ← Ahora es dinámico
+      //Probar la vista de mapas
+      initialRoute: AppRoutes.welcome, 
+
+      // Definimos las rutas de la aplicación
       routes: AppRoutes.routes,
     );
   }

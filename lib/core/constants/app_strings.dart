@@ -64,12 +64,6 @@ class AppStrings {
   static const String unknownError = 'Ha ocurrido un error inesperado';
   static const String invalidCredentials = 'Credenciales inválidas';
 
-  // Drawer Menu(Cadenas para el menú lateral)
-  static const String drawerProfile = 'Perfil';
-  static const String drawerPaymentMethods = 'Métodos de Pago';
-  static const String drawerHistory = 'Historial';
-  static const String drawerConfiguration = 'Configuración';
-  static const String drawerLogout = 'Cerrar sesión';
 
   // Profile Screen(Cadenas para la pantalla de perfil)
   static const String profileTitle = 'Perfil';
@@ -91,5 +85,5 @@ class AppStrings {
   static const String home = 'Inicio';
   static const String loading = 'Cargando...';
   static const String error = 'Error';
-  
+
 }

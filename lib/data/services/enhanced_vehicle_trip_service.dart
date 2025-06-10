@@ -53,16 +53,15 @@ class EnhancedVehicleTripService {
       // Validaciones iniciales
       _validateCoordinates(pickup.coordinates, destination.coordinates);
 
-      // INTENTO 1: trip_routing con filtros ULTRA estrictos
+      // ✅ SOLO UN INTENTO: trip_routing con filtros estrictos
       try {
-        print('🔄 Intento #1: trip_routing con filtros estrictos...');
+        print('🔄 Calculando ruta con trip_routing...');
         return await _calculateWithTripRouting(pickup, destination);
       } catch (e) {
-        print('❌ trip_routing falló: $e');
+        print('❌ No se pudo crear ruta vehicular: $e');
 
-        // INTENTO 2: Overpass API directo como respaldo
-        print('🔄 Intento #2: Overpass API como respaldo...');
-        return await _calculateWithOverpassBackup(pickup, destination);
+        // ✅ NO hay respaldo directo - fallar inmediatamente
+        throw Exception(RouteConstants.noVehicleRouteError);
       }
     } catch (e) {
       print('❌ Error completo calculando ruta: $e');
@@ -75,70 +74,69 @@ class EnhancedVehicleTripService {
     LocationEntity pickup,
     LocationEntity destination,
   ) async {
-    // Ajustar puntos a carreteras vehiculares
-    final snappedPickup = await _vehicleTripService.snapToVehicleRoad(
-      pickup.coordinates,
-    );
-    final snappedDestination = await _vehicleTripService.snapToVehicleRoad(
-      destination.coordinates,
-    );
-
-    // Calcular ruta usando trip_routing
-    final waypoints = [snappedPickup, snappedDestination];
-    final trip = await _vehicleTripService.findTotalTrip(
-      waypoints,
-      preferWalkingPaths: false,
-      replaceWaypointsWithBuildingEntrances: false,
-      forceIncludeWaypoints: false,
-      duplicationPenalty: 0.0,
-    );
-
-    if (trip.route.isEmpty || trip.route.length < 2) {
-      throw Exception(RouteConstants.noVehicleRouteError);
-    }
-
-    // Crear TripEntity exitoso
-    return await _createTripEntity(
-      trip,
-      pickup,
-      destination,
-      snappedPickup,
-      snappedDestination,
-    );
-  }
-
-  /// Método de respaldo usando Overpass API directo
-  Future<TripEntity> _calculateWithOverpassBackup(
-    LocationEntity pickup,
-    LocationEntity destination,
-  ) async {
     try {
-      print('🛡️ Intentando ruta con Overpass API directo...');
-
-      // Verificar que al menos los puntos estén cerca de calles vehiculares
+      // ✅ Verificar primero que los puntos estén cerca de calles vehiculares
       final pickupOnRoad = await _isPointNearVehicleRoad(pickup.coordinates);
       final destOnRoad = await _isPointNearVehicleRoad(destination.coordinates);
 
       if (!pickupOnRoad || !destOnRoad) {
-        throw Exception(RouteConstants.noRoadNearbyError);
+        throw Exception(RouteConstants.selectDifferentPointsError);
       }
 
-      // Si llegamos aquí es porque hay calles vehiculares pero trip_routing no pudo crear ruta
-      // En este caso, creamos una ruta simple directa como último recurso
-      final directRoute = _createDirectRoute(
+      // Ajustar puntos a carreteras vehiculares (más estricto)
+      final snappedPickup = await _vehicleTripService.snapToVehicleRoad(
         pickup.coordinates,
+      );
+      final snappedDestination = await _vehicleTripService.snapToVehicleRoad(
         destination.coordinates,
       );
 
-      if (directRoute.isEmpty) {
-        throw Exception(RouteConstants.overpassBackupFailedError);
+      print('✅ Puntos ajustados a calles vehiculares');
+
+      // Calcular ruta usando trip_routing
+      final waypoints = [snappedPickup, snappedDestination];
+      final trip = await _vehicleTripService.findTotalTrip(
+        waypoints,
+        preferWalkingPaths: false,
+        replaceWaypointsWithBuildingEntrances: false,
+        forceIncludeWaypoints: false,
+        duplicationPenalty: 0.0,
+      );
+
+      // ✅ VALIDACIÓN MÁS ESTRICTA
+      if (trip.route.isEmpty || trip.route.length < 2) {
+        throw Exception('No se generó una ruta vehicular válida');
       }
 
-      return _createSimpleTripEntity(pickup, destination, directRoute);
+      // ✅ VALIDAR que la ruta no sea demasiado directa (posible línea recta)
+      if (trip.route.length < 5) {
+        final directDistance = _calculateDistance(
+          snappedPickup,
+          snappedDestination,
+        );
+        final routeDistance = trip.distance / 1000;
+
+        // Si la ruta es casi igual a la distancia directa, es sospechosa
+        if ((routeDistance / directDistance) < 1.2) {
+          throw Exception(
+            'La ruta generada es demasiado directa - posible línea recta',
+          );
+        }
+      }
+
+      print('✅ Ruta vehicular válida generada con ${trip.route.length} puntos');
+
+      // Crear TripEntity exitoso
+      return await _createTripEntity(
+        trip,
+        pickup,
+        destination,
+        snappedPickup,
+        snappedDestination,
+      );
     } catch (e) {
-      print('❌ Overpass backup también falló: $e');
-      // Lanzar error específico para UI
-      throw Exception(RouteConstants.noVehicleRouteError);
+      print('❌ Error en trip_routing: $e');
+      rethrow;
     }
   }
 
@@ -146,20 +144,19 @@ class EnhancedVehicleTripService {
   Future<bool> _isPointNearVehicleRoad(LatLng point) async {
     try {
       final query = '''
-        [out:json];
-        (
-          way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential)\$"]
-  ["motor_vehicle"!~"no|private"]
-  ["access"!~"no"]
-  ["highway"!~"pedestrian|footway|path|track"]
-  ["leisure"!~"park|garden"]
-  ["landuse"!~"grass|recreation_ground"]
-  ["area"!="yes"]
-  ["surface"!~"grass|unpaved"]
-  (around:200, ${point.latitude}, ${point.longitude});
-        );
-        out count;
-        ''';
+      [out:json];
+      (
+        // SOLO CALLES PRINCIPALES Y SECUNDARIAS
+        way["highway"~"^(primary|secondary|tertiary|residential)\$"]
+           ["motor_vehicle"!="no"]
+           ["access"!="private"]
+           ["highway"!="pedestrian"]
+           ["highway"!="footway"]
+           ["highway"!="path"]
+           (around:100, ${point.latitude}, ${point.longitude});
+      );
+      out count;
+      ''';
 
       final url = Uri.parse('https://overpass-api.de/api/interpreter');
       final response = await http.post(url, body: {'data': query});
@@ -167,60 +164,16 @@ class EnhancedVehicleTripService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final elements = data['elements'] as List?;
-        return elements != null && elements.isNotEmpty;
+        final hasRoads = elements != null && elements.isNotEmpty;
+
+        print('🔍 Punto ${hasRoads ? "CERCA" : "LEJOS"} de calles vehiculares');
+        return hasRoads;
       }
       return false;
     } catch (e) {
-      print('Error verificando punto con Overpass: $e');
+      print('Error verificando calles cercanas: $e');
       return false;
     }
-  }
-
-  /// Crea una ruta directa simple como último recurso
-  List<LatLng> _createDirectRoute(LatLng start, LatLng end) {
-    // Crear ruta directa simple con puntos intermedios
-    final List<LatLng> route = [];
-    route.add(start);
-
-    // Agregar puntos intermedios para hacer la línea menos abrupta
-    final latDiff = end.latitude - start.latitude;
-    final lngDiff = end.longitude - start.longitude;
-
-    for (int i = 1; i < 5; i++) {
-      final ratio = i / 5.0;
-      route.add(
-        LatLng(
-          start.latitude + (latDiff * ratio),
-          start.longitude + (lngDiff * ratio),
-        ),
-      );
-    }
-
-    route.add(end);
-    return route;
-  }
-
-  /// Crea TripEntity simple para ruta de respaldo
-  Future<TripEntity> _createSimpleTripEntity(
-    LocationEntity pickup,
-    LocationEntity destination,
-    List<LatLng> routePoints,
-  ) async {
-    final distance = _calculateDistance(
-      pickup.coordinates,
-      destination.coordinates,
-    );
-    final duration = RouteConstants.calculateEstimatedTime(distance);
-
-    return TripEntity(
-      routePoints: routePoints,
-      distanceKm: distance,
-      durationMinutes: duration,
-      pickup: pickup.copyWith(isSnappedToRoad: true),
-      destination: destination.copyWith(isSnappedToRoad: true),
-      calculatedAt: DateTime.now(),
-      originalTrip: null, // No hay Trip original para rutas de respaldo
-    );
   }
 
   /// Crea TripEntity desde Trip de trip_routing

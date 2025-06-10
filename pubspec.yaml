@@ -56,6 +56,10 @@ dependencies:
   trip_routing: ^0.0.13
   latlong2: ^0.9.1
 
+  #Para seleccionar archivos del dispositivo
+  file_picker: ^10.1.9
+  get_it: ^8.0.3 # Para inyección de dependencias
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

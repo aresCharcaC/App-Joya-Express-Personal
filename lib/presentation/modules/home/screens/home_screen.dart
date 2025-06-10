@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:joya_express/presentation/modules/profile/Passenger/widgets/app_drawer.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
-import '../../pasajero/profile/widgets/app_drawer.dart';
 import '../viewmodels/map_viewmodel.dart';
 import '../widgets/map_view_widget.dart';
 import '../widgets/location_input_panel.dart';
 import 'destination_search_screen.dart';
+
 
 /// Pantalla principal del mapa después del login
 class MapMainScreen extends StatefulWidget {

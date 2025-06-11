@@ -4,7 +4,7 @@ class ApiEndpoints {
 
   // Base URL
   static const String baseUrl =
-      'https://6f32-38-255-105-31.ngrok-free.app'; // ✅ URL ACTUALIZADA
+      'https://cafa-38-255-105-31.ngrok-free.app'; //Remplazar diariamente
 
   // ✅ MANTENER HEADERS ORIGINALES
   // Headers para peticiones JSON
@@ -26,8 +26,13 @@ class ApiEndpoints {
 
   // ✅ SOLO AGREGAR WebSocket URL SIN CAMBIAR NADA MÁS
   static String get websocketUrl {
-    // ✅ URL FIJA SIN CONVERSIONES AUTOMÁTICAS
-    return 'wss://6f32-38-255-105-31.ngrok-free.app';
+    // Convertir HTTP a WebSocket
+    if (baseUrl.startsWith('https://')) {
+      return baseUrl.replaceFirst('https://', 'wss://');
+    } else if (baseUrl.startsWith('http://')) {
+      return baseUrl.replaceFirst('http://', 'ws://');
+    }
+    return 'wss://cafa-38-255-105-31.ngrok-free.app';
   }
 
   // ✅ MANTENER ENDPOINTS ORIGINALES EXISTENTES

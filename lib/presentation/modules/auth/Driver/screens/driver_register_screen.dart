@@ -24,12 +24,13 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
 
   // Variables para controlar qué campos están expandidos
   String? _expandedField;
-  
+
   // Variable para controlar la visibilidad de la contraseña
   bool _obscurePassword = true;
-  
+
   // Variables para almacenar las URLs de las imágenes subidas
-  String? _fotoBreveteUrl;
+  String? _fotoBreveteUrl =
+      "https://via.placeholder.com/400x300/007bff/ffffff?text=BREVETE+TEST";
   String? _fotoPerfilUrl;
   String? _fotoLateralUrl;
 
@@ -76,11 +77,21 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
   }
 
   void _setupRealTimeValidation() {
-    _dniController.addListener(() => _validateField('dni', _dniController.text));
-    _nombreController.addListener(() => _validateField('nombre', _nombreController.text));
-    _telefonoController.addListener(() => _validateField('telefono', _telefonoController.text));
-    _passwordController.addListener(() => _validateField('password', _passwordController.text));
-    _placaController.addListener(() => _validateField('placa', _placaController.text));
+    _dniController.addListener(
+      () => _validateField('dni', _dniController.text),
+    );
+    _nombreController.addListener(
+      () => _validateField('nombre', _nombreController.text),
+    );
+    _telefonoController.addListener(
+      () => _validateField('telefono', _telefonoController.text),
+    );
+    _passwordController.addListener(
+      () => _validateField('password', _passwordController.text),
+    );
+    _placaController.addListener(
+      () => _validateField('placa', _placaController.text),
+    );
   }
 
   void _validateField(String fieldName, String value) {
@@ -88,24 +99,39 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
       switch (fieldName) {
         case 'dni':
           _validationStates['dni']![0].isValid = value.length == 8;
-          _validationStates['dni']![1].isValid = RegExp(r'^\d+$').hasMatch(value);
+          _validationStates['dni']![1].isValid = RegExp(
+            r'^\d+$',
+          ).hasMatch(value);
           break;
         case 'nombre':
-          _validationStates['nombre']![0].isValid = value.trim().split(' ').length >= 2;
-          _validationStates['nombre']![1].isValid = RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$').hasMatch(value);
+          _validationStates['nombre']![0].isValid =
+              value.trim().split(' ').length >= 2;
+          _validationStates['nombre']![1].isValid = RegExp(
+            r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$',
+          ).hasMatch(value);
           break;
         case 'telefono':
           _validationStates['telefono']![0].isValid = value.length >= 9;
-          _validationStates['telefono']![1].isValid = RegExp(r'^[+]?[0-9\s-()]+$').hasMatch(value);
+          _validationStates['telefono']![1].isValid = RegExp(
+            r'^[+]?[0-9\s-()]+$',
+          ).hasMatch(value);
           break;
         case 'password':
           _validationStates['password']![0].isValid = value.length >= 6;
-          _validationStates['password']![1].isValid = RegExp(r'[A-Z]').hasMatch(value);
-          _validationStates['password']![2].isValid = RegExp(r'[0-9]').hasMatch(value);
+          _validationStates['password']![1].isValid = RegExp(
+            r'[A-Z]',
+          ).hasMatch(value);
+          _validationStates['password']![2].isValid = RegExp(
+            r'[0-9]',
+          ).hasMatch(value);
           break;
         case 'placa':
-          _validationStates['placa']![0].isValid = RegExp(r'^[A-Z]{3}-[0-9]{3}$').hasMatch(value.toUpperCase());
-          _validationStates['placa']![1].isValid = RegExp(r'^[A-Z]{3}-[0-9]{3}$').hasMatch(value.toUpperCase());
+          _validationStates['placa']![0].isValid = RegExp(
+            r'^[A-Z]{3}-[0-9]{3}$',
+          ).hasMatch(value.toUpperCase());
+          _validationStates['placa']![1].isValid = RegExp(
+            r'^[A-Z]{3}-[0-9]{3}$',
+          ).hasMatch(value.toUpperCase());
           break;
       }
     });
@@ -155,17 +181,20 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
       if (image != null) {
         try {
           final viewModel = context.read<DriverAuthViewModel>();
-          
+
           // Mostrar loading mientras se sube
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Subiendo imagen...', style: AppTextStyles.interBody),
+              content: Text(
+                'Subiendo imagen...',
+                style: AppTextStyles.interBody,
+              ),
               backgroundColor: AppColors.info,
             ),
           );
-          
+
           final url = await viewModel.uploadFile(image.path, type);
-          
+
           if (url != null) {
             setState(() {
               switch (type) {
@@ -180,17 +209,23 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
                   break;
               }
             });
-            
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Imagen subida exitosamente', style: AppTextStyles.interBody),
+                content: Text(
+                  'Imagen subida exitosamente',
+                  style: AppTextStyles.interBody,
+                ),
                 backgroundColor: AppColors.success,
               ),
             );
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Error al subir imagen', style: AppTextStyles.interBody),
+                content: Text(
+                  'Error al subir imagen',
+                  style: AppTextStyles.interBody,
+                ),
                 backgroundColor: AppColors.error,
               ),
             );
@@ -199,7 +234,10 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
           print('Error al subir imagen: $e');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error al subir imagen: $e', style: AppTextStyles.interBody),
+              content: Text(
+                'Error al subir imagen: $e',
+                style: AppTextStyles.interBody,
+              ),
               backgroundColor: AppColors.error,
             ),
           );
@@ -215,7 +253,10 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
     if (_fotoBreveteUrl == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Foto de brevete requerida', style: AppTextStyles.interBody),
+          content: Text(
+            'Foto de brevete requerida',
+            style: AppTextStyles.interBody,
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -255,7 +296,7 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
             children: [
               // Imagen de fondo con gradiente
               _buildBackgroundImage(),
-              
+
               // Modal al 80% con contenido
               Align(
                 alignment: Alignment.bottomCenter,
@@ -279,7 +320,7 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
                     children: [
                       // Header del modal
                       _buildModalHeader(),
-                      
+
                       // Contenido scrolleable
                       Expanded(
                         child: SingleChildScrollView(
@@ -290,7 +331,7 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 SizedBox(height: 24),
-                                
+
                                 // Campos del formulario expandibles
                                 _buildExpandableField(
                                   fieldKey: 'dni',
@@ -301,9 +342,9 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
                                   keyboardType: TextInputType.number,
                                   maxLength: 8,
                                 ),
-                                
+
                                 SizedBox(height: 16),
-                                
+
                                 _buildExpandableField(
                                   fieldKey: 'nombre',
                                   label: 'Nombre Completo',
@@ -311,9 +352,9 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
                                   controller: _nombreController,
                                   hint: 'Ingresa tu nombre completo',
                                 ),
-                                
+
                                 SizedBox(height: 16),
-                                
+
                                 _buildExpandableField(
                                   fieldKey: 'telefono',
                                   label: 'Teléfono',
@@ -322,9 +363,9 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
                                   hint: 'Ingresa tu teléfono',
                                   keyboardType: TextInputType.phone,
                                 ),
-                                
+
                                 SizedBox(height: 16),
-                                
+
                                 _buildExpandableField(
                                   fieldKey: 'password',
                                   label: 'Contraseña',
@@ -334,9 +375,9 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
                                   obscureText: _obscurePassword,
                                   showPasswordToggle: true,
                                 ),
-                                
+
                                 SizedBox(height: 16),
-                                
+
                                 _buildExpandableField(
                                   fieldKey: 'placa',
                                   label: 'Placa del vehículo',
@@ -344,22 +385,22 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
                                   controller: _placaController,
                                   hint: 'Ej: ABC-123',
                                 ),
-                                
+
                                 SizedBox(height: 24),
-                                
+
                                 // Sección de imágenes
                                 _buildImageSection(),
-                                
+
                                 SizedBox(height: 32),
-                                
+
                                 // Botón de registro
                                 _buildRegisterButton(viewModel),
-                                
+
                                 SizedBox(height: 16),
-                                
+
                                 // Link para iniciar sesión
                                 _buildLoginLink(),
-                                
+
                                 SizedBox(height: 24),
                               ],
                             ),
@@ -370,14 +411,16 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
                   ),
                 ),
               ),
-              
+
               // Loader mientras se realiza una operación
               if (viewModel.isLoading)
                 Container(
                   color: AppColors.black.withOpacity(0.3),
                   child: Center(
                     child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.primary,
+                      ),
                     ),
                   ),
                 ),
@@ -415,12 +458,16 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
           child: Container(
             padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isExpanded ? AppColors.primary.withOpacity(0.1) : AppColors.greyLight.withOpacity(0.5),
+              color:
+                  isExpanded
+                      ? AppColors.primary.withOpacity(0.1)
+                      : AppColors.greyLight.withOpacity(0.5),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isExpanded 
-                    ? AppColors.primary 
-                    : hasContent 
+                color:
+                    isExpanded
+                        ? AppColors.primary
+                        : hasContent
                         ? (isValid ? AppColors.success : AppColors.error)
                         : AppColors.border,
                 width: isExpanded ? 2 : 1,
@@ -430,9 +477,10 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
               children: [
                 Icon(
                   icon,
-                  color: isExpanded 
-                      ? AppColors.primary 
-                      : hasContent 
+                  color:
+                      isExpanded
+                          ? AppColors.primary
+                          : hasContent
                           ? (isValid ? AppColors.success : AppColors.error)
                           : AppColors.textSecondary,
                 ),
@@ -445,7 +493,10 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
                         label,
                         style: AppTextStyles.interBody.copyWith(
                           fontWeight: FontWeight.w500,
-                          color: isExpanded ? AppColors.primary : AppColors.textPrimary,
+                          color:
+                              isExpanded
+                                  ? AppColors.primary
+                                  : AppColors.textPrimary,
                         ),
                       ),
                       if (hasContent && !isExpanded)
@@ -465,14 +516,16 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
                     size: 20,
                   ),
                 Icon(
-                  isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  isExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
                   color: AppColors.textSecondary,
                 ),
               ],
             ),
           ),
         ),
-        
+
         // Campo expandido con validación
         if (isExpanded)
           AnimatedContainer(
@@ -516,29 +569,39 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: AppColors.primary, width: 2),
+                      borderSide: BorderSide(
+                        color: AppColors.primary,
+                        width: 2,
+                      ),
                     ),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                     counterText: '',
-                    suffixIcon: showPasswordToggle
-                        ? IconButton(
-                            icon: Icon(
-                              obscureText ? Icons.visibility_off : Icons.visibility,
-                              color: AppColors.textSecondary,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
-                          )
-                        : null,
+                    suffixIcon:
+                        showPasswordToggle
+                            ? IconButton(
+                              icon: Icon(
+                                obscureText
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: AppColors.textSecondary,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            )
+                            : null,
                   ),
-                  validator: (value) => _validateFieldForSubmit(fieldKey, value),
+                  validator:
+                      (value) => _validateFieldForSubmit(fieldKey, value),
                 ),
-                
+
                 SizedBox(height: 12),
-                
+
                 // Checklist de validación
                 _buildValidationChecklist(fieldKey),
               ],
@@ -550,9 +613,9 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
 
   Widget _buildValidationChecklist(String fieldKey) {
     final rules = _validationStates[fieldKey] ?? [];
-    
+
     if (rules.isEmpty) return SizedBox.shrink();
-    
+
     return Container(
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -565,11 +628,7 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.checklist,
-                size: 16,
-                color: AppColors.primary,
-              ),
+              Icon(Icons.checklist, size: 16, color: AppColors.primary),
               SizedBox(width: 6),
               Text(
                 'Requisitos:',
@@ -581,33 +640,48 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
             ],
           ),
           SizedBox(height: 8),
-          ...rules.map((rule) => Padding(
-            padding: EdgeInsets.only(bottom: 6),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  margin: EdgeInsets.only(top: 2),
-                  child: Icon(
-                    rule.isValid ? Icons.check_circle : Icons.radio_button_unchecked,
-                    size: 16,
-                    color: rule.isValid ? AppColors.success : AppColors.textSecondary,
+          ...rules
+              .map(
+                (rule) => Padding(
+                  padding: EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        margin: EdgeInsets.only(top: 2),
+                        child: Icon(
+                          rule.isValid
+                              ? Icons.check_circle
+                              : Icons.radio_button_unchecked,
+                          size: 16,
+                          color:
+                              rule.isValid
+                                  ? AppColors.success
+                                  : AppColors.textSecondary,
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          rule.message,
+                          style: AppTextStyles.interCaption.copyWith(
+                            color:
+                                rule.isValid
+                                    ? AppColors.success
+                                    : AppColors.textSecondary,
+                            decoration:
+                                rule.isValid
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    rule.message,
-                    style: AppTextStyles.interCaption.copyWith(
-                      color: rule.isValid ? AppColors.success : AppColors.textSecondary,
-                      decoration: rule.isValid ? TextDecoration.lineThrough : null,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          )).toList(),
+              )
+              .toList(),
         ],
       ),
     );
@@ -628,22 +702,28 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
     if (value?.isEmpty ?? true) {
       return '${_getFieldLabel(fieldKey)} requerido';
     }
-    
+
     if (!_isFieldValid(fieldKey)) {
       return 'Completa todos los requisitos';
     }
-    
+
     return null;
   }
 
   String _getFieldLabel(String fieldKey) {
     switch (fieldKey) {
-      case 'dni': return 'DNI';
-      case 'nombre': return 'Nombre';
-      case 'telefono': return 'Teléfono';
-      case 'password': return 'Contraseña';
-      case 'placa': return 'Placa';
-      default: return 'Campo';
+      case 'dni':
+        return 'DNI';
+      case 'nombre':
+        return 'Nombre';
+      case 'telefono':
+        return 'Teléfono';
+      case 'password':
+        return 'Contraseña';
+      case 'placa':
+        return 'Placa';
+      default:
+        return 'Campo';
     }
   }
 
@@ -655,10 +735,7 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            AppColors.primary,
-            AppColors.primaryDark,
-          ],
+          colors: [AppColors.primary, AppColors.primaryDark],
         ),
       ),
       child: Stack(
@@ -668,7 +745,9 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
             child: Container(
               decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: AssetImage('assets/images/driver.png'), // Reemplaza con tu imagen
+                  image: AssetImage(
+                    'assets/images/driver.png',
+                  ), // Reemplaza con tu imagen
                   fit: BoxFit.cover,
                   colorFilter: ColorFilter.mode(
                     AppColors.black.withOpacity(0.3),
@@ -678,7 +757,7 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
               ),
             ),
           ),
-          
+
           // Texto superpuesto
           Positioned(
             top: MediaQuery.of(context).size.height * 0.15,
@@ -716,17 +795,11 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
                 color: AppColors.greyLight,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
-                Icons.arrow_back,
-                color: AppColors.textPrimary,
-              ),
+              child: Icon(Icons.arrow_back, color: AppColors.textPrimary),
             ),
           ),
           SizedBox(width: 10),
-          Text(
-            'Registrarse',
-            style: AppTextStyles.poppinsHeading2,
-          ),
+          Text('Registrarse', style: AppTextStyles.poppinsHeading2),
         ],
       ),
     );
@@ -786,46 +859,46 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: hasImage ? AppColors.success.withOpacity(0.1) : AppColors.greyLight,
+                color:
+                    hasImage
+                        ? AppColors.success.withOpacity(0.1)
+                        : AppColors.greyLight,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: hasImage ? AppColors.success : AppColors.border,
                   width: 2,
                 ),
               ),
-              child: hasImage
-                  ? Icon(
-                      Icons.check_circle,
-                      color: AppColors.success,
-                      size: 28,
-                    )
-                  : Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Icon(
-                          icon,
-                          color: AppColors.textSecondary,
-                          size: 24,
-                        ),
-                        Positioned(
-                          bottom: 4,
-                          right: 4,
-                          child: Container(
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.add,
-                              color: AppColors.white,
-                              size: 12,
+              child:
+                  hasImage
+                      ? Icon(
+                        Icons.check_circle,
+                        color: AppColors.success,
+                        size: 28,
+                      )
+                      : Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Icon(icon, color: AppColors.textSecondary, size: 24),
+                          Positioned(
+                            bottom: 4,
+                            right: 4,
+                            child: Container(
+                              width: 20,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.add,
+                                color: AppColors.white,
+                                size: 12,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
             ),
             SizedBox(height: 8),
             Text(
@@ -867,9 +940,10 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
         ),
         child: Text(
           'Crear cuenta',
-          style: viewModel.isLoading 
-              ? AppTextStyles.poppinsButtonDisabled
-              : AppTextStyles.poppinsButton,
+          style:
+              viewModel.isLoading
+                  ? AppTextStyles.poppinsButtonDisabled
+                  : AppTextStyles.poppinsButton,
         ),
       ),
     );
@@ -879,10 +953,7 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
-          '¿Ya tienes una cuenta? ',
-          style: AppTextStyles.interBodySmall,
-        ),
+        Text('¿Ya tienes una cuenta? ', style: AppTextStyles.interBodySmall),
         GestureDetector(
           onTap: () {
             Navigator.pushReplacementNamed(context, AppRoutes.driverLogin);

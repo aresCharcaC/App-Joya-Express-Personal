@@ -45,15 +45,16 @@ class DriverStatusToggle extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isAvailable ? Colors.green : Colors.transparent,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: isAvailable
-                      ? [
-                          BoxShadow(
-                            color: Colors.green.withOpacity(0.3),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
+                  boxShadow:
+                      isAvailable
+                          ? [
+                            BoxShadow(
+                              color: Colors.green.withOpacity(0.3),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                          : null,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -68,7 +69,8 @@ class DriverStatusToggle extends StatelessWidget {
                       'Disponible',
                       style: AppTextStyles.interBody.copyWith(
                         color: isAvailable ? Colors.white : Colors.grey[600],
-                        fontWeight: isAvailable ? FontWeight.w600 : FontWeight.normal,
+                        fontWeight:
+                            isAvailable ? FontWeight.w600 : FontWeight.normal,
                       ),
                     ),
                   ],
@@ -76,7 +78,7 @@ class DriverStatusToggle extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // Botón "Ocupado"
           Expanded(
             child: GestureDetector(
@@ -87,15 +89,16 @@ class DriverStatusToggle extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: !isAvailable ? Colors.red : Colors.transparent,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: !isAvailable
-                      ? [
-                          BoxShadow(
-                            color: Colors.red.withOpacity(0.3),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
+                  boxShadow:
+                      !isAvailable
+                          ? [
+                            BoxShadow(
+                              color: Colors.red.withOpacity(0.3),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                          : null,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -110,7 +113,8 @@ class DriverStatusToggle extends StatelessWidget {
                       'Ocupado',
                       style: AppTextStyles.interBody.copyWith(
                         color: !isAvailable ? Colors.white : Colors.grey[600],
-                        fontWeight: !isAvailable ? FontWeight.w600 : FontWeight.normal,
+                        fontWeight:
+                            !isAvailable ? FontWeight.w600 : FontWeight.normal,
                       ),
                     ),
                   ],

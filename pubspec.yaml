@@ -59,6 +59,7 @@ dependencies:
   #Para seleccionar archivos del dispositivo
   file_picker: ^10.1.9
   get_it: ^8.0.3 # Para inyección de dependencias
+  web_socket_channel: ^3.0.3
 
 dev_dependencies:
   flutter_test:

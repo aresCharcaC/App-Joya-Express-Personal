@@ -1,26 +1,24 @@
 class ApiEndpoints {
   // Base URL
 
-  static const String baseUrl = 'https://7567-190-235-229-26.ngrok-free.app'; //Remplazar diariamente
-  
+  static const String baseUrl =
+      'https://b238-38-255-105-31.ngrok-free.app'; //Remplazar diariamente
+
   // Headers para peticiones JSON
   static const Map<String, String> jsonHeaders = {
     'Content-Type': 'application/json',
     'ngrok-skip-browser-warning': 'true',
   };
-  
+
   // Headers para peticiones multipart (SIN Content-Type)
   static const Map<String, String> multipartHeaders = {
     'ngrok-skip-browser-warning': 'true',
     // NO incluir Content-Type aquí, Dio lo maneja automáticamente
   };
-  
   // Headers base (sin Content-Type)
   static const Map<String, String> baseHeaders = {
     'ngrok-skip-browser-warning': 'true',
   };
-  
-
 
   // Auth endpoints
   static const String sendCode = '/api/auth/send-code';

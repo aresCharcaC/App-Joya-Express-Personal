@@ -25,18 +25,19 @@ class WebSocketService {
   Future<bool> connectDriver(String conductorId, String token) async {
     try {
       _conductorId = conductorId;
+
+      // ✅ URL DIRECTA SIN CONVERSIONES
       final wsUrl = ApiEndpoints.websocketUrl;
 
       print('🔌 Conectando WebSocket: $wsUrl');
 
-      // ✅ VERIFICAR QUE LA URL NO TENGA PUERTO :0
-      final cleanWsUrl = wsUrl.replaceAll(':0', '');
-      print('🔧 URL limpia: $cleanWsUrl');
-
       _channel = WebSocketChannel.connect(
-        Uri.parse(cleanWsUrl),
-        protocols: ['conductor'], // Identificar como conductor
+        Uri.parse(wsUrl),
+        protocols: ['echo-protocol'],
       );
+
+      // Esperar un poco antes de enviar auth
+      await Future.delayed(const Duration(milliseconds: 500));
 
       // Autenticar conductor
       _send({

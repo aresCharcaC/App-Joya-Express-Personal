@@ -1,3 +1,4 @@
+// lib/presentation/modules/auth/Driver/screens/driver_home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:joya_express/core/constants/app_text_styles.dart';
 import 'package:joya_express/presentation/modules/auth/Driver/viewmodels/driver_home_viewmodel.dart';
@@ -115,11 +116,11 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
 
             return Column(
               children: [
-                // Toggle de disponibilidad MÁS COMPACTO
+                // Toggle de disponibilidad compacto
                 _buildCompactStatusToggle(homeVm, authVm),
 
-                // ✅ QUITAR BARRA AZUL DE UBICACIÓN (comentado)
-                // _buildLocationInfo(homeVm),
+                // Información de ubicación
+                _buildLocationInfo(homeVm),
 
                 // Título de solicitudes
                 _buildSectionTitle(homeVm),
@@ -194,7 +195,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
     DriverAuthViewModel authVm,
   ) {
     return Container(
-      margin: const EdgeInsets.all(12), // ✅ Restaurado bonito
+      margin: const EdgeInsets.all(12), // Reducido de 16
       child: DriverStatusToggle(
         isAvailable: homeVm.disponible,
         onStatusChanged: (isAvailable) async {
@@ -248,43 +249,23 @@ class _DriverHomeScreenState extends State<DriverHomeScreen>
   }
 
   Widget _buildSectionTitle(DriverHomeViewModel homeVm) {
-    final totalSolicitudes = homeVm.solicitudes.length;
-    final solicitudesOriginales =
-        homeVm.todasLasSolicitudes.length; // ✅ Usar getter público
-
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4), // ✅ Reducido espaciado
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4), // Reducido espaciado
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            homeVm.disponible
-                ? 'Solicitudes cercanas'
-                : 'Todas las solicitudes',
+            'Solicitudes cercanas',
             style: AppTextStyles.poppinsHeading3.copyWith(
-              fontSize: 15,
-            ), // ✅ Reducido
+              fontSize: 16,
+            ), // Reducido
           ),
-          if (totalSolicitudes > 0)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color:
-                    homeVm.disponible
-                        ? Colors.green.withOpacity(0.2)
-                        : Colors.grey.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                homeVm.disponible && solicitudesOriginales > totalSolicitudes
-                    ? '$totalSolicitudes de $solicitudesOriginales'
-                    : '$totalSolicitudes',
-                style: AppTextStyles.interBodySmall.copyWith(
-                  fontSize: 11,
-                  color:
-                      homeVm.disponible ? Colors.green[700] : Colors.grey[700],
-                  fontWeight: FontWeight.w600,
-                ),
+          if (homeVm.solicitudes.isNotEmpty)
+            Text(
+              '${homeVm.solicitudes.length}',
+              style: AppTextStyles.interBodySmall.copyWith(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w600,
               ),
             ),
         ],

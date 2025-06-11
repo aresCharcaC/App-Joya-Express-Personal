@@ -1,3 +1,4 @@
+// lib/presentation/modules/auth/Driver/screens/driver_home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:joya_express/core/constants/app_text_styles.dart';
 import 'package:joya_express/presentation/modules/auth/Driver/viewmodels/driver_home_viewmodel.dart';
@@ -5,107 +6,132 @@ import 'package:joya_express/presentation/modules/auth/Driver/viewmodels/driver_
 import 'package:joya_express/presentation/modules/auth/Driver/widgets/driver_drawer.dart';
 import 'package:joya_express/presentation/modules/auth/Driver/widgets/driver_request_list.dart';
 import 'package:joya_express/presentation/modules/auth/Driver/widgets/driver_status_toggle.dart';
+import 'package:joya_express/presentation/modules/auth/Driver/screens/request_detail_screen.dart';
 import 'package:provider/provider.dart';
 
 /**
- * DriverHomeScreen
+ * DriverHomeScreen ACTUALIZADA
  * ----------------
- * Pantalla principal del conductor que muestra:
- * - Toggle de disponibilidad
- * - Lista de solicitudes de pasajeros cercanos
- * - Drawer con opciones del conductor
- * 
- * Refactorizada para eliminar redundancia y mejorar la separación de responsabilidades.
+ * Pantalla principal del conductor con:
+ * - Integración con backend real
+ * - WebSocket para tiempo real
+ * - GPS automático
+ * - Modal de detalles optimizado
  */
-class DriverHomeScreen extends StatelessWidget {
+class DriverHomeScreen extends StatefulWidget {
   const DriverHomeScreen({super.key});
+
+  @override
+  State<DriverHomeScreen> createState() => _DriverHomeScreenState();
+}
+
+class _DriverHomeScreenState extends State<DriverHomeScreen>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    // Inicializar después del primer frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeWithAuth();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Inicializar con datos de autenticación
+  void _initializeWithAuth() {
+    final authVm = Provider.of<DriverAuthViewModel>(context, listen: false);
+    final homeVm = Provider.of<DriverHomeViewModel>(context, listen: false);
+
+    if (authVm.isAuthenticated && authVm.currentDriver != null) {
+      final driver = authVm.currentDriver!;
+
+      // Inicializar con ID y token reales
+      homeVm.init(
+        conductorId: driver.id,
+        token: 'dummy_token', // TODO: Obtener token real del authVm
+      );
+
+      print('✅ Home inicializado para conductor: ${driver.nombreCompleto}');
+    } else {
+      print('⚠️ No hay conductor autenticado');
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    final homeVm = Provider.of<DriverHomeViewModel>(context, listen: false);
+
+    switch (state) {
+      case AppLifecycleState.paused:
+        // App en background - mantener ubicación pero reducir frecuencia
+        print('📱 App en background');
+        break;
+      case AppLifecycleState.resumed:
+        // App activa - reanudar servicios completos
+        print('📱 App activa - refrescando solicitudes');
+        homeVm.refreshSolicitudes();
+        break;
+      case AppLifecycleState.detached:
+        // App cerrada - limpiar recursos
+        print('📱 App cerrada');
+        break;
+      default:
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => DriverHomeViewModel()..init()),
-        // Se asume que DriverAuthViewModel ya está en el árbol de widgets superior
-      ],
+      providers: [ChangeNotifierProvider(create: (_) => DriverHomeViewModel())],
       child: Scaffold(
-        appBar: AppBar(
-          title: Text('Principal', style: AppTextStyles.poppinsHeading2),
-          actions: [
-            // Indicador de estado de autenticación
-            Consumer<DriverAuthViewModel>(
-              builder: (context, authVm, _) {
-                if (authVm.isAuthenticated) {
-                  return Container(
-                    margin: const EdgeInsets.only(right: 16),
-                    child: Center(
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Colors.green,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-          ],
-        ),
+        appBar: _buildAppBar(),
         drawer: const DriverDrawer(),
         body: Consumer2<DriverHomeViewModel, DriverAuthViewModel>(
           builder: (context, homeVm, authVm, _) {
-            // Verificar si está cargando
+            // Estados de carga y error
             if (authVm.isLoading) {
               return _buildLoadingState();
             }
 
-            // Verificar autenticación
             if (!authVm.isAuthenticated || authVm.currentDriver == null) {
               _redirectToLogin(context);
               return _buildRedirectingState();
             }
 
+            if (homeVm.error != null) {
+              return _buildErrorState(homeVm.error!, () {
+                homeVm.refreshSolicitudes();
+              });
+            }
+
             return Column(
               children: [
-                // Toggle de disponibilidad
-                DriverStatusToggle(
-                  isAvailable: homeVm.disponible,
-                  onStatusChanged: (isAvailable) async {
-                    homeVm.setDisponible(isAvailable);
-                    await authVm.setAvailability(isAvailable);
-                  },
-                ),
+                // Toggle de disponibilidad compacto
+                _buildCompactStatusToggle(homeVm, authVm),
+
+                // ❌ BARRA AZUL ELIMINADA - No mostrar ubicación al conductor
 
                 // Título de solicitudes
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Solicitudes de pasajeros cercanos',
-                      style: AppTextStyles.poppinsHeading3,
-                    ),
-                  ),
-                ),
+                _buildSectionTitle(homeVm),
 
-                // Lista de solicitudes
+                // Lista de solicitudes optimizada
                 Expanded(
                   child: DriverRequestList(
                     solicitudes: homeVm.solicitudes,
-                    onRefresh: () async {
-                      // TODO: Implementar refresh de solicitudes
-                      // await homeVm.refreshSolicitudes();
-                    },
-                    onRequestTap: (request) {
-                      // TODO: Implementar acción al tocar una solicitud
-                      _showRequestDetails(context, request);
-                    },
+                    onRefresh: homeVm.refreshSolicitudes,
+                    onRequestTap:
+                        (request) =>
+                            _showRequestDetails(context, request, homeVm),
                   ),
                 ),
               ],
@@ -116,7 +142,142 @@ class DriverHomeScreen extends StatelessWidget {
     );
   }
 
-  /// Construye el estado de carga
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      title: Text(
+        'Principal',
+        style: AppTextStyles.poppinsHeading2.copyWith(fontSize: 18),
+      ),
+      elevation: 0,
+      actions: [
+        // Indicador de conexión WebSocket
+        Consumer<DriverHomeViewModel>(
+          builder: (context, homeVm, _) {
+            return Container(
+              margin: const EdgeInsets.only(right: 16),
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: homeVm.disponible ? Colors.green : Colors.grey,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    // Indicador de ubicación GPS
+                    Icon(
+                      homeVm.currentPosition != null
+                          ? Icons.gps_fixed
+                          : Icons.gps_not_fixed,
+                      size: 16,
+                      color:
+                          homeVm.currentPosition != null
+                              ? Colors.green
+                              : Colors.grey,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCompactStatusToggle(
+    DriverHomeViewModel homeVm,
+    DriverAuthViewModel authVm,
+  ) {
+    return Container(
+      margin: const EdgeInsets.all(12), // Reducido de 16
+      child: DriverStatusToggle(
+        isAvailable: homeVm.disponible,
+        onStatusChanged: (isAvailable) async {
+          homeVm.setDisponible(isAvailable);
+          await authVm.setAvailability(isAvailable);
+        },
+      ),
+    );
+  }
+
+  /// Quitar barra azul de ubicación - NO MOSTRAR AL CONDUCTOR
+  Widget _buildLocationInfo(DriverHomeViewModel homeVm) {
+    // ❌ ELIMINADO - El conductor no necesita ver sus coordenadas
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildSectionTitle(DriverHomeViewModel homeVm) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4), // Reducido espaciado
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Solicitudes cercanas',
+            style: AppTextStyles.poppinsHeading3.copyWith(
+              fontSize: 16,
+            ), // Reducido
+          ),
+          if (homeVm.solicitudes.isNotEmpty)
+            Text(
+              '${homeVm.solicitudes.length}',
+              style: AppTextStyles.interBodySmall.copyWith(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Mostrar pantalla completa de detalles de solicitud
+  void _showRequestDetails(
+    BuildContext context,
+    dynamic request,
+    DriverHomeViewModel homeVm,
+  ) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => RequestDetailScreen(
+              request: request,
+              onMakeOffer: (rideId, tarifa, tiempo, mensaje) async {
+                print('💰 Haciendo oferta: $rideId - S/$tarifa - ${tiempo}min');
+
+                final success = await homeVm.makeOffer(
+                  rideId: rideId,
+                  tarifa: tarifa,
+                  tiempoEstimado: tiempo,
+                  mensaje: mensaje,
+                );
+
+                if (success) {
+                  // Remover de la lista local (ya no disponible)
+                  homeVm.solicitudes.removeWhere((s) => s.rideId == rideId);
+                  homeVm.notifyListeners();
+                }
+
+                return success;
+              },
+              onReject: (rideId) async {
+                print('❌ Rechazando solicitud: $rideId');
+
+                final success = await homeVm.rejectRequest(rideId);
+                return success;
+              },
+            ),
+      ),
+    );
+  }
+
+  /// Estados de UI
   Widget _buildLoadingState() {
     return const Scaffold(
       body: Center(
@@ -125,14 +286,13 @@ class DriverHomeScreen extends StatelessWidget {
           children: [
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            Text('Cargando...', style: TextStyle(fontSize: 16)),
+            Text('Inicializando...'),
           ],
         ),
       ),
     );
   }
 
-  /// Construye el estado de redirección
   Widget _buildRedirectingState() {
     return const Scaffold(
       body: Center(
@@ -141,14 +301,42 @@ class DriverHomeScreen extends StatelessWidget {
           children: [
             Icon(Icons.logout, size: 48, color: Colors.grey),
             SizedBox(height: 16),
-            Text('Redirigiendo al login...', style: TextStyle(fontSize: 16)),
+            Text('Redirigiendo al login...'),
           ],
         ),
       ),
     );
   }
 
-  /// Redirige al login si no está autenticado
+  Widget _buildErrorState(String error, VoidCallback onRetry) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.red[400]),
+              const SizedBox(height: 16),
+              Text('Error', style: AppTextStyles.poppinsHeading2),
+              const SizedBox(height: 8),
+              Text(
+                error,
+                style: AppTextStyles.interBody,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: onRetry,
+                child: const Text('Reintentar'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _redirectToLogin(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Navigator.pushNamedAndRemoveUntil(
@@ -157,53 +345,5 @@ class DriverHomeScreen extends StatelessWidget {
         (route) => false,
       );
     });
-  }
-
-  /// Muestra los detalles de una solicitud
-  void _showRequestDetails(BuildContext context, dynamic request) {
-    // TODO: Implementar modal o navegación a detalles de solicitud
-    showModalBottomSheet(
-      context: context,
-      builder:
-          (context) => Container(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Detalles de la solicitud',
-                  style: AppTextStyles.poppinsHeading2,
-                ),
-                const SizedBox(height: 16),
-                Text('Nombre: ${request.nombre ?? 'N/A'}'),
-                Text(
-                  'Precio: S/ ${request.precio?.toStringAsFixed(2) ?? '0.00'}',
-                ),
-                Text('Dirección: ${request.direccion ?? 'N/A'}'),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Rechazar'),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          // TODO: Implementar aceptar solicitud
-                          Navigator.pop(context);
-                        },
-                        child: const Text('Aceptar'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-    );
   }
 }

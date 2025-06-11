@@ -80,7 +80,6 @@ class DriverRequestList extends StatelessWidget {
   }
 }
 
-/// 🎯 CARD COMPACTA - Altura reducida de ~120px a ~80px
 class _CompactRequestCard extends StatelessWidget {
   final dynamic request;
   final VoidCallback? onTap;

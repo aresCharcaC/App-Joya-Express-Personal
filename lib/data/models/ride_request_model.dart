@@ -1,169 +1,70 @@
-// lib/data/models/ride_request_model.dart
-class RideRequestModel {
-  final String id;
-  final String usuarioId;
-  final String usuarioNombre;
-  final String? usuarioFoto;
-  final double? usuarioRating;
-  final int? usuarioVotos;
-  final String origenDireccion;
-  final double origenLat;
-  final double origenLng;
-  final String destinoDireccion;
-  final double destinoLat;
-  final double destinoLng;
-  final double tarifaMaxima;
-  final List<String> metodosPago;
-  final String estado;
-  final DateTime fechaSolicitud;
-  final double? distanciaKm;
-  final int? tiempoEstimadoMinutos;
-
+import '../../domain/entities/ride_request_entity.dart';
+// RideRequestModel extiende RideRequestEntity para heredar todas sus propiedades
+// Pero añade funcionalidades específicas de la capa de datos (JSON conversion)
+class RideRequestModel extends RideRequest {
+  // Constructor que simplemente pasa todos los parámetros al constructor padre
   RideRequestModel({
-    required this.id,
-    required this.usuarioId,
-    required this.usuarioNombre,
-    this.usuarioFoto,
-    this.usuarioRating,
-    this.usuarioVotos,
-    required this.origenDireccion,
-    required this.origenLat,
-    required this.origenLng,
-    required this.destinoDireccion,
-    required this.destinoLat,
-    required this.destinoLng,
-    required this.tarifaMaxima,
-    required this.metodosPago,
-    required this.estado,
-    required this.fechaSolicitud,
-    this.distanciaKm,
-    this.tiempoEstimadoMinutos,
-  });
-
+    String? id,// Pasa el id al constructor de RideRequestEntity
+    required double origenLat,
+    required double origenLng,
+    required double destinoLat,
+    required double destinoLng,
+    String? origenDireccion,
+    String? destinoDireccion,
+    double? precioSugerido,
+    String? notas,
+    String metodoPagoPreferido = 'efectivo',
+    String? estado,
+    DateTime? fechaCreacion,
+  }) : super(
+          id: id,
+          origenLat: origenLat,
+          origenLng: origenLng,
+          destinoLat: destinoLat,
+          destinoLng: destinoLng,
+          origenDireccion: origenDireccion,
+          destinoDireccion: destinoDireccion,
+          precioSugerido: precioSugerido,
+          notas: notas,
+          metodoPagoPreferido: metodoPagoPreferido,
+          estado: estado,
+          fechaCreacion: fechaCreacion,
+        );
+ // Factory constructor que convierte un Map<String, dynamic> a RideRequestModel
+ // Se usa cuando recibimos datos del servidor en formato JSON
   factory RideRequestModel.fromJson(Map<String, dynamic> json) {
     return RideRequestModel(
-      id: json['id'] ?? '',
-      usuarioId: json['usuario_id'] ?? '',
-      usuarioNombre:
-          json['usuario_nombre'] ??
-          json['usuario']?['nombre_completo'] ??
-          'Sin nombre',
-      usuarioFoto: json['usuario_foto'] ?? json['usuario']?['foto_perfil'],
-      usuarioRating:
-          json['usuario_rating']?.toDouble() ??
-          json['usuario']?['rating']?.toDouble(),
-      usuarioVotos: json['usuario_votos'] ?? json['usuario']?['total_votos'],
-      origenDireccion: json['origen_direccion'] ?? 'Origen no especificado',
-      origenLat: (json['origen_lat'] ?? 0.0).toDouble(),
-      origenLng: (json['origen_lng'] ?? 0.0).toDouble(),
-      destinoDireccion: json['destino_direccion'] ?? 'Destino no especificado',
-      destinoLat: (json['destino_lat'] ?? 0.0).toDouble(),
-      destinoLng: (json['destino_lng'] ?? 0.0).toDouble(),
-      tarifaMaxima: (json['tarifa_maxima'] ?? 0.0).toDouble(),
-      metodosPago:
-          json['metodos_pago'] != null
-              ? List<String>.from(json['metodos_pago'])
-              : ['Efectivo'],
-      estado: json['estado'] ?? 'pendiente',
-      fechaSolicitud:
-          json['fecha_solicitud'] != null
-              ? DateTime.parse(json['fecha_solicitud'])
-              : DateTime.now(),
-      distanciaKm: json['distancia_km']?.toDouble(),
-      tiempoEstimadoMinutos: json['tiempo_estimado_minutos'],
+      // Extrae el ID del viaje desde la respuesta del servidor
+      id: json['viaje_id'],
+            // Extrae coordenadas del origen desde el objeto anidado 'origen'
+      origenLat: json['origen']['lat'].toDouble(),
+      origenLng: json['origen']['lng'].toDouble(),
+      destinoLat: json['destino']['lat'].toDouble(),
+      destinoLng: json['destino']['lng'].toDouble(),
+      origenDireccion: json['origen']['direccion'],
+      destinoDireccion: json['destino']['direccion'],
+      precioSugerido: json['precio_sugerido']?.toDouble(),
+      estado: json['estado'],
+      fechaCreacion: DateTime.parse(json['fecha_creacion']),
+      metodoPagoPreferido: json['metodo_pago_preferido'] ?? 'efectivo',
     );
   }
-
+  // Método que convierte el objeto RideRequestModel a Map<String, dynamic>
+  // Se usa cuando enviamos datos al servidor
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'usuario_id': usuarioId,
-      'usuario_nombre': usuarioNombre,
-      'usuario_foto': usuarioFoto,
-      'usuario_rating': usuarioRating,
-      'usuario_votos': usuarioVotos,
-      'origen_direccion': origenDireccion,
+      // Campos obligatorios que siempre se envían
       'origen_lat': origenLat,
       'origen_lng': origenLng,
-      'destino_direccion': destinoDireccion,
       'destino_lat': destinoLat,
       'destino_lng': destinoLng,
-      'tarifa_maxima': tarifaMaxima,
-      'metodos_pago': metodosPago,
-      'estado': estado,
-      'fecha_solicitud': fechaSolicitud.toIso8601String(),
-      'distancia_km': distanciaKm,
-      'tiempo_estimado_minutos': tiempoEstimadoMinutos,
+      'metodo_pago_preferido': metodoPagoPreferido,
+      
+      // Campos opcionales: solo se incluyen si no son null
+      if (origenDireccion != null) 'origen_direccion': origenDireccion,
+      if (destinoDireccion != null) 'destino_direccion': destinoDireccion,
+      if (precioSugerido != null) 'precio_sugerido': precioSugerido,
+      if (notas != null) 'notas': notas,
     };
   }
-
-  /// Convierte a formato compatible con el ViewModel actual (para mantener mocks)
-  dynamic toMockFormat() {
-    return MockSolicitud(
-      nombre: usuarioNombre,
-      foto: usuarioFoto ?? 'https://randomuser.me/api/portraits/men/1.jpg',
-      precio: tarifaMaxima,
-      direccion: origenDireccion,
-      metodos: metodosPago,
-      rating: usuarioRating ?? 4.5,
-      votos: usuarioVotos ?? 0,
-      // Campos adicionales para el detalle
-      rideId: id,
-      usuarioId: usuarioId,
-      origenLat: origenLat,
-      origenLng: origenLng,
-      destinoDireccion: destinoDireccion,
-      destinoLat: destinoLat,
-      destinoLng: destinoLng,
-      estado: estado,
-      fechaSolicitud: fechaSolicitud,
-      distanciaKm: distanciaKm,
-      tiempoEstimadoMinutos: tiempoEstimadoMinutos,
-    );
-  }
-}
-
-/// Clase temporal para mantener compatibilidad con el ViewModel actual
-class MockSolicitud {
-  final String nombre;
-  final String foto;
-  final double precio;
-  final String direccion;
-  final List<String> metodos;
-  final double rating;
-  final int votos;
-
-  // Campos adicionales del modelo real
-  final String rideId;
-  final String usuarioId;
-  final double origenLat;
-  final double origenLng;
-  final String destinoDireccion;
-  final double destinoLat;
-  final double destinoLng;
-  final String estado;
-  final DateTime fechaSolicitud;
-  final double? distanciaKm;
-  final int? tiempoEstimadoMinutos;
-
-  MockSolicitud({
-    required this.nombre,
-    required this.foto,
-    required this.precio,
-    required this.direccion,
-    required this.metodos,
-    required this.rating,
-    required this.votos,
-    required this.rideId,
-    required this.usuarioId,
-    required this.origenLat,
-    required this.origenLng,
-    required this.destinoDireccion,
-    required this.destinoLat,
-    required this.destinoLng,
-    required this.estado,
-    required this.fechaSolicitud,
-    this.distanciaKm,
-    this.tiempoEstimadoMinutos,
-  });
-}
+} 

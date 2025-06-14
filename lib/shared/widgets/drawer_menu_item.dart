@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:joya_express/core/constants/app_colors.dart';
 import 'package:joya_express/core/constants/app_text_styles.dart';
 
-/**
- * DrawerMenuItem
- * --------------
- * Widget reutilizable que representa un elemento del menú lateral (Drawer).
- * Muestra un ícono, un texto y ejecuta una acción al ser presionado.
- * Permite personalizar colores de ícono y texto.
- */
+/// DrawerMenuItem
+/// --------------
+/// Widget reutilizable que representa un elemento del menú lateral (Drawer).
+/// Muestra un ícono, un texto y ejecuta una acción al ser presionado.
+/// Permite personalizar colores de ícono y texto.
 
 class DrawerMenuItem extends StatelessWidget {
   final IconData icon;

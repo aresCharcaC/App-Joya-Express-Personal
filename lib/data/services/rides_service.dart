@@ -2,7 +2,7 @@
 import 'package:dio/dio.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/network/api_client.dart';
-import '../models/ride_request_model.dart';
+import '../models/user/ride_request_model.dart';
 
 class RidesService {
   final ApiClient _apiClient;
@@ -15,27 +15,18 @@ class RidesService {
   /// 🧭 Obtener solicitudes cercanas al conductor
   Future<List<RideRequestModel>> getNearbyRequests() async {
     try {
-      print('🔍 Obteniendo solicitudes cercanas...');
-
-      final response = await _apiClient.get(
-        '/api/rides/driver/nearby-requests',
-      );
-
+      final response = await _apiClient.get('/api/rides/driver/nearby-requests');
       if (response['success'] == true) {
         final data = response['data'];
         final nearbyRequests = data['nearby_requests'] as List;
-
-        print('✅ ${nearbyRequests.length} solicitudes encontradas');
-
         return nearbyRequests
             .map((json) => RideRequestModel.fromJson(json))
             .toList();
       }
-
       return [];
     } catch (e) {
       print('❌ Error obteniendo solicitudes: $e');
-      throw Exception('Error al obtener solicitudes cercanas: $e');
+      return [];
     }
   }
 

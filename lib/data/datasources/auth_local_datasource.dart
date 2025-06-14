@@ -2,9 +2,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 
-/**
- * servicio de almacenamiento local para datos de autenticación
- */
+/// servicio de almacenamiento local para datos de autenticación
 class AuthLocalDataSource {
   static const String _userKey = 'current_user';
   static const String _accessTokenKey = 'access_token';

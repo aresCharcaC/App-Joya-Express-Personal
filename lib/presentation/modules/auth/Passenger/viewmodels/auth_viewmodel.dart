@@ -6,9 +6,7 @@ import '../../../../../domain/repositories/auth_repository.dart';
 import '../../../../../data/models/auth_response_model.dart';
 import '../../../../../shared/utils/phone_formatter.dart';
 enum AuthState { initial, loading, success, error }
-/**
- * ViewModel para manejar la lógica de autenticación
- */
+/// ViewModel para manejar la lógica de autenticación
 class AuthViewModel extends ChangeNotifier {
   final AuthRepository _authRepository;
 

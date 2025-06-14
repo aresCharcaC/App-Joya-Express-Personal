@@ -8,13 +8,11 @@ import 'package:joya_express/shared/widgets/confirmation_dialog.dart';
 import 'package:joya_express/shared/widgets/drawer_menu_item.dart';
 import 'package:provider/provider.dart';
 
-/**
- * DriverDrawer
- * ------------
- * Widget que representa el Drawer lateral de la aplicación para conductores.
- * Muestra la información del conductor en la cabecera y una lista de opciones de menú.
- * Permite navegar a diferentes secciones y cerrar sesión.
- */
+/// DriverDrawer
+/// ------------
+/// Widget que representa el Drawer lateral de la aplicación para conductores.
+/// Muestra la información del conductor en la cabecera y una lista de opciones de menú.
+/// Permite navegar a diferentes secciones y cerrar sesión.
 class DriverDrawer extends StatelessWidget {
   const DriverDrawer({super.key});
 

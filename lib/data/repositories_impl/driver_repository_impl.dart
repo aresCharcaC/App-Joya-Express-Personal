@@ -5,7 +5,10 @@ import 'package:joya_express/domain/entities/driver_entity.dart';
 import 'package:joya_express/domain/repositories/driver_repository.dart';
 import '../datasources/driver_remote_datasource.dart';
 import '../datasources/driver_local_datasource.dart';
-
+/**
+ * Implementación del repositorio de conductores.
+ * Maneja la lógica de negocio y la comunicación
+ */
 class DriverRepositoryImpl implements DriverRepository {
   final DriverRemoteDataSource remote;
   final DriverLocalDataSource local;

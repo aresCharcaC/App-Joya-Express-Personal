@@ -9,13 +9,11 @@ import 'package:joya_express/shared/widgets/custom_drawer_header.dart';
 import 'package:joya_express/shared/widgets/drawer_menu_item.dart';
 import 'package:provider/provider.dart';
 import 'package:joya_express/presentation/modules/routes/app_routes.dart';
-/**
- * AppDrawer
- * ---------
- * Widget que representa el Drawer lateral de la aplicación.
- * Muestra la información del usuario en la cabecera y una lista de opciones de menú.
- * Permite navegar a diferentes secciones y cerrar sesión.
- */
+/// AppDrawer
+/// ---------
+/// Widget que representa el Drawer lateral de la aplicación.
+/// Muestra la información del usuario en la cabecera y una lista de opciones de menú.
+/// Permite navegar a diferentes secciones y cerrar sesión.
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
 

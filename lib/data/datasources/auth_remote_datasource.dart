@@ -4,10 +4,8 @@ import '../models/auth_response_model.dart';
 import '../models/user_model.dart';
 import '../models/api_response_model.dart';
 
-/**
- * Servicio encargado de gestionar todas las operaciones de autenticación 
- * que requieren comunicación remota con el backend
- */
+/// Servicio encargado de gestionar todas las operaciones de autenticación 
+/// que requieren comunicación remota con el backend
 class AuthRemoteDataSource {
   final ApiClient _apiClient;
 

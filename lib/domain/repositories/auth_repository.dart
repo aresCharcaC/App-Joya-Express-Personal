@@ -1,8 +1,6 @@
 import '../entities/user_entity.dart';
 import '../../data/models/auth_response_model.dart';
-/**
- * Define los métodos que el repositorio de autenticación debe implementar
- */
+/// Define los métodos que el repositorio de autenticación debe implementar
 abstract class AuthRepository {
   Future<SendCodeResponse> sendCode(String phone);
   Future<VerifyCodeResponse> verifyCode(String phone, String code);

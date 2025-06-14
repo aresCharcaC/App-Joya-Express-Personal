@@ -3,7 +3,12 @@ import 'package:latlong2/latlong.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:trip_routing/src/utils/haversine.dart';
-
+/**
+ * Servicio especializado para rutas vehiculares
+ * Este servicio extiende TripService
+ * y aplica filtros estrictos para asegurar que
+ * las rutas generadas son exclusivamente vehiculares
+ */
 class VehicleTripService extends TripService {
   VehicleTripService() : super();
 
@@ -17,7 +22,7 @@ class VehicleTripService extends TripService {
   ) async {
     // Clamp bounds to avoid NaN/Infinity
     double clamp(double v, double min, double max) =>
-        v.isFinite ? v.clamp(min, max) as double : min;
+        v.isFinite ? v.clamp(min, max) : min;
     minLat = clamp(minLat, -90, 90);
     maxLat = clamp(maxLat, -90, 90);
     minLon = clamp(minLon, -180, 180);
@@ -283,6 +288,7 @@ class VehicleTripService extends TripService {
   }
 
   @override
+  //
   Future<Trip> findTotalTrip(
     List<LatLng> waypoints, {
     bool preferWalkingPaths = false,

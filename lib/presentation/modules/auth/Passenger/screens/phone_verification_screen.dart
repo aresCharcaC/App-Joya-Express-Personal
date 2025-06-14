@@ -5,7 +5,6 @@ import 'package:joya_express/core/constants/app_strings.dart';
 import 'package:joya_express/data/services/auth_persistence_service.dart';
 import 'package:joya_express/presentation/modules/auth/Passenger/viewmodels/auth_viewmodel.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../widgets/verification_code_input.dart';
 import '../widgets/custom_button.dart';
 

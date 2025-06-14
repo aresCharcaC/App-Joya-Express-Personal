@@ -4,9 +4,7 @@ import 'package:joya_express/core/network/api_exceptions.dart';
 import 'package:joya_express/data/models/driver_response_model.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_endpoints.dart';
-/**
- * Servicio encargado de gestionar todas las operaciones de conductor
- */
+/// Servicio encargado de gestionar todas las operaciones de conductor
 class DriverRemoteDataSource {
   final ApiClient _apiClient;
 

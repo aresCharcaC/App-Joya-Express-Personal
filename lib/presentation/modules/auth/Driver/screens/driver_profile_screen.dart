@@ -7,6 +7,8 @@ import 'package:joya_express/presentation/modules/auth/Driver/viewmodels/driver_
 import 'package:provider/provider.dart';
 
 class DriverProfileScreen extends StatefulWidget {
+  const DriverProfileScreen({super.key});
+
   @override
   State<DriverProfileScreen> createState() => _DriverProfileScreenState();
 }

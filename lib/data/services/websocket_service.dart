@@ -26,33 +26,39 @@ class WebSocketService {
     try {
       _conductorId = conductorId;
 
-      // ✅ URL DIRECTA SIN CONVERSIONES
+      // URL con puerto explícito
       final wsUrl = ApiEndpoints.websocketUrl;
 
       print('🔌 Conectando WebSocket: $wsUrl');
 
       _channel = WebSocketChannel.connect(
         Uri.parse(wsUrl),
-        protocols: ['echo-protocol'],
+        // Quitar protocols que pueden causar problemas
       );
 
-      // Esperar un poco antes de enviar auth
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Escuchar primero para capturar errores de conexión
+      _channel!.stream.listen(
+        _handleMessage,
+        onError: (error) {
+          print('❌ Error en stream WebSocket: $error');
+          _handleError(error);
+        },
+        onDone: () {
+          print('⚠️ WebSocket cerrado');
+          _handleDisconnection();
+        },
+      );
 
-      // Autenticar conductor
+      // Esperar un poco más para establecer conexión
+      await Future.delayed(const Duration(seconds: 1));
+
+      // Enviar autenticación con formato correcto
       _send({
         'type': 'auth',
         'userType': 'conductor',
         'userId': conductorId,
         'token': token,
       });
-
-      // Escuchar mensajes
-      _channel!.stream.listen(
-        _handleMessage,
-        onError: _handleError,
-        onDone: _handleDisconnection,
-      );
 
       _isConnected = true;
       print('✅ WebSocket conectado como conductor: $conductorId');

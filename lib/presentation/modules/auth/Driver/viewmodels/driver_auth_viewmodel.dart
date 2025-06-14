@@ -91,7 +91,7 @@ class DriverAuthViewModel extends ChangeNotifier {
       print('🚀 Iniciando upload...');
       final url = await _fileUploadService.uploadFile(filePath, type);
       
-      if (url != null && url.isNotEmpty) {
+      if (url.isNotEmpty) {
         print('✅ Upload exitoso, URL: $url');
         print('=== FIN DEBUG UPLOAD ===');
         _setLoading(false);

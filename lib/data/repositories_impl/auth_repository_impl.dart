@@ -6,11 +6,9 @@ import '../datasources/auth_remote_datasource.dart';
 import '../datasources/auth_local_datasource.dart';
 import '../models/auth_response_model.dart';
 
-/**
- * Implementación del repositorio de autenticación.
- * Maneja la lógica de negocio y la comunicación 
- * con las fuentes de datos remotas y locales.
- */
+/// Implementación del repositorio de autenticación.
+/// Maneja la lógica de negocio y la comunicación 
+/// con las fuentes de datos remotas y locales.
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _remoteDataSource;
   final AuthLocalDataSource _localDataSource;

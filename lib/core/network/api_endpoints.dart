@@ -1,12 +1,10 @@
+import 'package:joya_express/core/config/app_config.dart';
+
 // lib/core/network/api_endpoints.dart
 class ApiEndpoints {
-  // ✅ MANTENER NOMBRES ORIGINALES - NO CAMBIAR
 
-  // Base URL
-  static const String baseUrl =
-      'https://cafa-38-255-105-31.ngrok-free.app'; //Remplazar diariamente
+  static String get baseUrl => AppConfig.baseUrl;
 
-  // ✅ MANTENER HEADERS ORIGINALES
   // Headers para peticiones JSON
   static const Map<String, String> jsonHeaders = {
     'Content-Type': 'application/json',
@@ -26,13 +24,25 @@ class ApiEndpoints {
 
   // ✅ SOLO AGREGAR WebSocket URL SIN CAMBIAR NADA MÁS
   static String get websocketUrl {
-    // Convertir HTTP a WebSocket
+    // Para ngrok, extraer el subdominio y usar puerto 443
+    if (baseUrl.contains('ngrok-free.app')) {
+      final match = RegExp(
+        r'https://([a-z0-9-]+)\.ngrok-free\.app',
+      ).firstMatch(baseUrl);
+      if (match != null) {
+        final subdomain = match.group(1);
+        return 'wss://$subdomain.ngrok-free.app:443';
+      }
+    }
+
+    // Para desarrollo local
     if (baseUrl.startsWith('https://')) {
       return baseUrl.replaceFirst('https://', 'wss://');
     } else if (baseUrl.startsWith('http://')) {
       return baseUrl.replaceFirst('http://', 'ws://');
     }
-    return 'wss://cafa-38-255-105-31.ngrok-free.app';
+
+    return 'wss://f75f-45-236-45-225.ngrok-free.app:443';
   }
 
   // ✅ MANTENER ENDPOINTS ORIGINALES EXISTENTES
@@ -58,8 +68,14 @@ class ApiEndpoints {
   static const String driverAvailability = '/api/conductor-auth/availability';
   static const String driverUpload = '/api/conductor-auth/upload';
 
-  // ✅ SOLO AGREGAR NUEVOS ENDPOINTS PARA SOLICITUDES
-  // === NUEVOS ENDPOINTS PARA SOLICITUDES ===
+  // Endpoints de viajes
+  static const String createRide = '/api/rides/request';
+  static const String getRide = '/api/rides/';
+  static const String getActiveRides = '/api/rides/active';
+  static const String cancelRide = '/api/rides/cancel/';
+  static const String getRideOffers = '/api/rides/offers/';
+
+  // Endpoints para conductores
   static const String nearbyRequests = '/api/rides/driver/nearby-requests';
   static const String updateDriverLocation = '/api/rides/driver/location';
   static const String makeDriverOffer = '/api/rides/driver/offer';

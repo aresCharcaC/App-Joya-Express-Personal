@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:joya_express/core/constants/app_colors.dart';
 import 'package:joya_express/core/constants/app_strings.dart';
 import 'package:joya_express/core/constants/app_text_styles.dart';
-/**
- * ConfirmationDialog
- * ------------------
- * Diálogo reutilizable para confirmar acciones, como cerrar sesión.
- * Permite personalizar título, mensaje y botones.
- * Devuelve true si el usuario confirma, false si cancela.
- */
+/// ConfirmationDialog
+/// ------------------
+/// Diálogo reutilizable para confirmar acciones, como cerrar sesión.
+/// Permite personalizar título, mensaje y botones.
+/// Devuelve true si el usuario confirma, false si cancela.
 class ConfirmationDialog extends StatelessWidget {
   final String title;
   final String message;

@@ -42,8 +42,8 @@ class MapViewWidget extends StatelessWidget {
                 onPositionChanged: (position, hasGesture) {
                   if (hasGesture) {
                     mapViewModel.updateMapCenter(
-                      position.center!,
-                      position.zoom!,
+                      position.center,
+                      position.zoom,
                     );
                   }
                 },
@@ -96,10 +96,6 @@ class MapViewWidget extends StatelessWidget {
 
             // Overlay de información de ruta (MOVIDO MÁS ABAJO)
             if (mapViewModel.hasRoute) _buildRouteInfoOverlay(mapViewModel),
-
-            // NUEVO: Indicador pequeño del punto de recogida
-            if (mapViewModel.hasPickupLocation)
-              _buildPickupIndicator(context, mapViewModel),
           ],
         );
       },
@@ -117,14 +113,14 @@ class MapViewWidget extends StatelessWidget {
           point: mapViewModel.currentLocation!.coordinates,
           width: 20,
           height: 20,
-          // SIN alignment para el punto azul (queda centrado)
           child: _buildCurrentLocationMarker(),
         ),
       );
     }
 
-    // Marcador de punto de recogida (pin negro móvil) - CORREGIDO
+    // Marcador de punto de recogida (pin negro móvil) con indicador
     if (mapViewModel.hasPickupLocation) {
+      // Marcador principal (pin negro)
       markers.add(
         Marker(
           point: mapViewModel.pickupLocation!.coordinates,
@@ -135,9 +131,45 @@ class MapViewWidget extends StatelessWidget {
           ),
         ),
       );
+
+      // Marcador del indicador de texto
+      markers.add(
+        Marker(
+          point: mapViewModel.pickupLocation!.coordinates,
+          width: 120,
+          height: 35,
+          alignment: Alignment.topCenter,
+          child: Transform.translate(
+            offset: const Offset(0, -50),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.surface.withOpacity(0.95),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Text(
+                'Punto de recogida',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 10,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
     }
 
-    // Marcador de destino - CORREGIDO
+    // Marcador de destino
     if (mapViewModel.hasDestinationLocation) {
       markers.add(
         Marker(
@@ -307,7 +339,7 @@ class MapViewWidget extends StatelessWidget {
       top: 120, // CAMBIADO: Más abajo para no chocar con el menú
       left: 20,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: AppColors.surface.withOpacity(0.95),
           borderRadius: BorderRadius.circular(20),
@@ -340,47 +372,6 @@ class MapViewWidget extends StatelessWidget {
               style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  /// NUEVO: Indicador pequeño del punto de recogida (cerca del pin negro)
-  Widget _buildPickupIndicator(
-    BuildContext context,
-    MapViewModel mapViewModel,
-  ) {
-    return Positioned(
-      top:
-          MediaQuery.of(context).size.height *
-          0.25, // Posición aproximada del pin
-      left: 20,
-      right: 20,
-      child: Center(
-        child: Transform.translate(
-          offset: const Offset(0, -40), // Mover hacia arriba del pin
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.surface.withOpacity(0.95),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Text(
-              'Punto de recogida',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w500,
-                fontSize: 10, // TAMAÑO MÁS PEQUEÑO
-              ),
-            ),
-          ),
         ),
       ),
     );

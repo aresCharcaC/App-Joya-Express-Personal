@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:latlong2/latlong.dart';
 import '../../../../domain/entities/place_entity.dart';
 import '../../../../domain/entities/location_entity.dart';
 import '../viewmodels/destination_search_viewmodel.dart';

@@ -4,12 +4,16 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../viewmodels/map_viewmodel.dart';
 import 'trip_offer_bottom_sheet.dart';
+import '../../../../presentation/providers/ride_provider.dart';
+import '../../../../domain/entities/ride_request_entity.dart';
 
 /// Panel inferior con campos de origen y destino
+/// Este widget maneja la interfaz para seleccionar ubicaciones y crear solicitudes de viaje
 class LocationInputPanel extends StatelessWidget {
-  final VoidCallback? onDestinationTap;
-  final VoidCallback? onTripOfferTap;
-  final VoidCallback? onSearchMototaxiTap;
+  // Callbacks para manejar interacciones del usuario
+  final VoidCallback? onDestinationTap;      // Se llama al tocar el campo de destino
+  final VoidCallback? onTripOfferTap;        // Se llama al tocar el botón de tarifa
+  final VoidCallback? onSearchMototaxiTap;   // Se llama al tocar el botón de búsqueda
 
   const LocationInputPanel({
     super.key,
@@ -20,12 +24,13 @@ class LocationInputPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<MapViewModel>(
-      builder: (context, mapViewModel, child) {
+    // Usamos Consumer2 para escuchar cambios en MapViewModel y RideProvider
+    return Consumer2<MapViewModel, RideProvider>(
+      builder: (context, mapViewModel, rideProvider, child) {
         return Container(
           width: double.infinity,
           decoration: const BoxDecoration(
-            color: Color(0xFF2D2D2D), // Gris oscuro como en la foto
+            color: Color(0xFF2D2D2D), // Fondo oscuro del panel
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(20),
               topRight: Radius.circular(20),
@@ -38,23 +43,23 @@ class LocationInputPanel extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Campo de origen (punto de recogida)
+                  // Campo para mostrar/seleccionar punto de recogida
                   _buildPickupField(mapViewModel),
 
                   const SizedBox(height: 12),
 
-                  // Campo de destino
+                  // Campo para mostrar/seleccionar destino
                   _buildDestinationField(mapViewModel),
 
                   const SizedBox(height: 16),
 
-                  // Botón de tarifa (ACTUALIZADO con validación)
+                  // Botón para configurar tarifa del viaje
                   _buildTripOfferButton(context, mapViewModel),
 
                   const SizedBox(height: 12),
 
-                  // Botón principal (ACTUALIZADO con mensaje de desarrollo)
-                  _buildSearchButton(context, mapViewModel),
+                  // Botón principal para buscar mototaxi
+                  _buildSearchButton(context, mapViewModel, rideProvider),
                 ],
               ),
             ),
@@ -64,17 +69,18 @@ class LocationInputPanel extends StatelessWidget {
     );
   }
 
-  /// Campo de punto de recogida
+  /// Construye el campo de punto de recogida
+  /// Muestra un pin blanco y la dirección seleccionada
   Widget _buildPickupField(MapViewModel mapViewModel) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF2D2D2D), // Mismo color del panel
+        color: const Color(0xFF2D2D2D),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          // Pin blanco
+          // Pin blanco indicador de origen
           Container(
             width: 12,
             height: 12,
@@ -104,7 +110,8 @@ class LocationInputPanel extends StatelessWidget {
     );
   }
 
-  /// Campo de destino (CON X para borrar cuando hay destino)
+  /// Construye el campo de destino
+  /// Muestra un icono de lugar y la dirección seleccionada
   Widget _buildDestinationField(MapViewModel mapViewModel) {
     final bool hasDestination = mapViewModel.hasDestinationLocation;
 
@@ -118,7 +125,7 @@ class LocationInputPanel extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Icono - cambia según si hay destino
+            // Icono que cambia según si hay destino seleccionado
             Icon(
               hasDestination ? Icons.place : Icons.search,
               color: AppColors.primary,
@@ -147,7 +154,8 @@ class LocationInputPanel extends StatelessWidget {
     );
   }
 
-  /// Botón de tarifa (ACTUALIZADO - Con validación de destino)
+  /// Construye el botón de tarifa
+  /// Muestra el precio sugerido y permite configurar la tarifa
   Widget _buildTripOfferButton(
     BuildContext context,
     MapViewModel mapViewModel,
@@ -158,7 +166,7 @@ class LocationInputPanel extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         if (!hasDestination) {
-          // Mostrar mensaje si no hay destino
+          // Mostrar mensaje si no hay destino seleccionado
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Establece un destino primero'),
@@ -170,6 +178,7 @@ class LocationInputPanel extends StatelessWidget {
         }
 
         if (hasRoute) {
+          // Mostrar bottom sheet de tarifa si hay ruta calculada
           _showTripOfferBottomSheet(context);
         } else {
           onTripOfferTap?.call();
@@ -179,12 +188,12 @@ class LocationInputPanel extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF505050), // Gris más claro que el panel
+          color: const Color(0xFF505050),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
-            // Icono de dinero rojo
+            // Icono de dinero
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
@@ -236,53 +245,188 @@ class LocationInputPanel extends StatelessWidget {
     );
   }
 
-  /// Botón principal de búsqueda (ACTUALIZADO - Mensaje de desarrollo)
-  Widget _buildSearchButton(BuildContext context, MapViewModel mapViewModel) {
+  /// Construye el botón principal de búsqueda
+  /// Integra RideProvider para crear solicitudes de viaje
+  Widget _buildSearchButton(
+    BuildContext context,
+    MapViewModel mapViewModel,
+    RideProvider rideProvider,
+  ) {
     final bool canSearch = mapViewModel.canCalculateRoute;
+    final bool isLoading = rideProvider.isLoading;
 
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed:
-            canSearch
-                ? () {
-                  // Mostrar mensaje de desarrollo en lugar de funcionalidad
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Función en desarrollo - Próximamente'),
-                      backgroundColor: AppColors.info,
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                }
-                : null,
+        onPressed: canSearch && !isLoading
+            ? () => _handleSearchMototaxi(context, mapViewModel, rideProvider)
+            : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor:
-              canSearch ? AppColors.primary : AppColors.buttonDisabled,
+          backgroundColor: canSearch ? AppColors.primary : AppColors.buttonDisabled,
           foregroundColor: AppColors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: Text(
-          'Buscar Mototaxi',
-          style: AppTextStyles.poppinsButton.copyWith(
-            color: canSearch ? AppColors.white : AppColors.buttonTextDisabled,
-          ),
-        ),
+        child: isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  color: AppColors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : Text(
+                'Buscar Mototaxi',
+                style: AppTextStyles.poppinsButton.copyWith(
+                  color: canSearch ? AppColors.white : AppColors.buttonTextDisabled,
+                ),
+              ),
       ),
     );
   }
 
-  /// Calcula el precio sugerido (3 soles base + 1 sol por km)
+  /// Maneja la creación de solicitud de viaje
+  /// Valida los datos y crea la solicitud usando RideProvider
+  Future<void> _handleSearchMototaxi(
+    BuildContext context,
+    MapViewModel mapViewModel,
+    RideProvider rideProvider,
+  ) async {
+    // Validar que existan todos los datos necesarios
+    if (!mapViewModel.hasRoute || !mapViewModel.hasPickupLocation || !mapViewModel.hasDestinationLocation) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: No se puede crear la solicitud de viaje'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    try {
+      // Crear objeto RideRequest con los datos del mapa
+      final request = RideRequest(
+        origenLat: mapViewModel.pickupLocation!.coordinates.latitude,
+        origenLng: mapViewModel.pickupLocation!.coordinates.longitude,
+        destinoLat: mapViewModel.destinationLocation!.coordinates.latitude,
+        destinoLng: mapViewModel.destinationLocation!.coordinates.longitude,
+        origenDireccion: mapViewModel.pickupLocation!.address,
+        destinoDireccion: mapViewModel.destinationLocation!.address,
+        precioSugerido: mapViewModel.routeDistance * 1.0 + 3.0, // 3 soles base + 1 sol por km
+        metodoPagoPreferido: 'efectivo', // Por defecto efectivo
+        estado: 'pendiente',
+        fechaCreacion: DateTime.now(),
+      );
+
+      // Enviar solicitud usando el provider y esperar la respuesta
+      final success = await rideProvider.createRideRequest(request);
+
+      if (context.mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Buscando mototaxi...'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        } else {
+          // Si no fue exitoso, mostrar el error del provider
+          String errorMessage = 'Error al crear la solicitud';
+          
+          if (rideProvider.error != null) {
+            if (rideProvider.error!.contains('NO hay conductores cercanos disponibles')) {
+              errorMessage = 'No hay conductores disponibles en tu zona. Por favor, intenta más tarde.';
+            } else if (rideProvider.error!.contains('Error de validación')) {
+              errorMessage = 'Error en los datos de la solicitud. Por favor, verifica la información.';
+            } else if (rideProvider.error!.contains('Error de autenticación')) {
+              errorMessage = 'Error de sesión. Por favor, vuelve a iniciar sesión.';
+            } else if (rideProvider.error!.contains('Error de conexión')) {
+              errorMessage = 'Error de conexión. Por favor, verifica tu conexión a internet.';
+            }
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: AppColors.white),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      errorMessage,
+                      style: const TextStyle(color: AppColors.white),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: AppColors.error,
+              duration: const Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'Entendido',
+                textColor: AppColors.white,
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                },
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        String errorMessage = 'Error al crear la solicitud';
+        
+        if (e.toString().contains('NO hay conductores cercanos disponibles')) {
+          errorMessage = 'No hay conductores disponibles en tu zona. Por favor, intenta más tarde.';
+        } else if (e.toString().contains('Error de validación')) {
+          errorMessage = 'Error en los datos de la solicitud. Por favor, verifica la información.';
+        } else if (e.toString().contains('Error de autenticación')) {
+          errorMessage = 'Error de sesión. Por favor, vuelve a iniciar sesión.';
+        } else if (e.toString().contains('Error de conexión')) {
+          errorMessage = 'Error de conexión. Por favor, verifica tu conexión a internet.';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: AppColors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    errorMessage,
+                    style: const TextStyle(color: AppColors.white),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Entendido',
+              textColor: AppColors.white,
+              onPressed: () {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Calcula el precio sugerido basado en la distancia
+  /// Fórmula: 3 soles base + 1 sol por kilómetro
   int _calculateSuggestedPrice(double distanceKm) {
     final price = 3.0 + (distanceKm * 1.0);
     return ((price * 2).round() / 2).round(); // Redondear a .5 más cercano
   }
 
-  /// Muestra el bottom sheet de tarifa
+  /// Muestra el bottom sheet para configurar la tarifa
   void _showTripOfferBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,

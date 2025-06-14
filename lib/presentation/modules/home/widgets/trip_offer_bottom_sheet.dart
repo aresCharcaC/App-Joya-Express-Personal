@@ -4,8 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
-import '../../../../core/constants/app_strings.dart';
 import '../viewmodels/map_viewmodel.dart';
+import '../../../../presentation/providers/ride_provider.dart';
+import '../../../../domain/entities/ride_request_entity.dart';
 
 /// Bottom sheet para configurar tarifa del viaje (DISEÑO ACTUALIZADO)
 class TripOfferBottomSheet extends StatefulWidget {
@@ -21,6 +22,7 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
 
   double _recommendedPrice = 0.0;
   double _userPrice = 0.0;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -58,16 +60,150 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
     }
   }
 
-  void _confirmOffer() {
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Buscando mototaxi por S/${_userPrice.toStringAsFixed(0)}',
+  Future<void> _confirmOffer() async {
+    final mapViewModel = Provider.of<MapViewModel>(context, listen: false);
+    final rideProvider = Provider.of<RideProvider>(context, listen: false);
+
+    if (!mapViewModel.hasRoute || !mapViewModel.hasPickupLocation || !mapViewModel.hasDestinationLocation) {
+      Navigator.pop(context); // Cerrar el BottomSheet primero
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: No se puede crear la solicitud de viaje'),
+          backgroundColor: AppColors.error,
         ),
-        backgroundColor: AppColors.success,
-      ),
-    );
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Crear la solicitud de viaje
+      final request = RideRequest(
+        origenLat: mapViewModel.pickupLocation!.coordinates.latitude,
+        origenLng: mapViewModel.pickupLocation!.coordinates.longitude,
+        destinoLat: mapViewModel.destinationLocation!.coordinates.latitude,
+        destinoLng: mapViewModel.destinationLocation!.coordinates.longitude,
+        origenDireccion: mapViewModel.pickupLocation!.address,
+        destinoDireccion: mapViewModel.destinationLocation!.address,
+        precioSugerido: _userPrice,
+        metodoPagoPreferido: 'efectivo', // Por defecto efectivo
+        estado: 'pendiente',
+        fechaCreacion: DateTime.now(),
+      );
+
+      // Crear la solicitud usando el provider
+      final success = await rideProvider.createRideRequest(request);
+
+      if (mounted) {
+        if (success) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Buscando mototaxi por S/${_userPrice.toStringAsFixed(0)}',
+              ),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        } else {
+          // Cerrar el BottomSheet antes de mostrar el error
+          Navigator.pop(context);
+          
+          // Si no fue exitoso, mostrar el error del provider
+          String errorMessage = 'Error al crear la solicitud';
+          
+          if (rideProvider.error != null) {
+            if (rideProvider.error!.contains('NO hay conductores cercanos disponibles')) {
+              errorMessage = 'No hay conductores disponibles en tu zona. Por favor, intenta más tarde.';
+            } else if (rideProvider.error!.contains('Error de validación')) {
+              errorMessage = 'Error en los datos de la solicitud. Por favor, verifica la información.';
+            } else if (rideProvider.error!.contains('Error de autenticación')) {
+              errorMessage = 'Error de sesión. Por favor, vuelve a iniciar sesión.';
+            } else if (rideProvider.error!.contains('Error de conexión')) {
+              errorMessage = 'Error de conexión. Por favor, verifica tu conexión a internet.';
+            }
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: AppColors.white),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      errorMessage,
+                      style: const TextStyle(color: AppColors.white),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: AppColors.error,
+              duration: const Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'Entendido',
+                textColor: AppColors.white,
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                },
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        // Cerrar el BottomSheet antes de mostrar el error
+        Navigator.pop(context);
+        
+        String errorMessage = 'Error al crear la solicitud';
+        
+        if (e.toString().contains('NO hay conductores cercanos disponibles')) {
+          errorMessage = 'No hay conductores disponibles en tu zona. Por favor, intenta más tarde.';
+        } else if (e.toString().contains('Error de validación')) {
+          errorMessage = 'Error en los datos de la solicitud. Por favor, verifica la información.';
+        } else if (e.toString().contains('Error de autenticación')) {
+          errorMessage = 'Error de sesión. Por favor, vuelve a iniciar sesión.';
+        } else if (e.toString().contains('Error de conexión')) {
+          errorMessage = 'Error de conexión. Por favor, verifica tu conexión a internet.';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: AppColors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    errorMessage,
+                    style: const TextStyle(color: AppColors.white),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Entendido',
+              textColor: AppColors.white,
+              onPressed: () {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -351,7 +487,7 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: isValidPrice ? _confirmOffer : null,
+        onPressed: isValidPrice && !_isLoading ? _confirmOffer : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.white,
@@ -360,13 +496,22 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: Text(
-          'Buscar Mototaxi',
-          style: AppTextStyles.poppinsButton.copyWith(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        child: _isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  color: AppColors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : Text(
+                'Buscar Mototaxi',
+                style: AppTextStyles.poppinsButton.copyWith(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
       ),
     );
   }

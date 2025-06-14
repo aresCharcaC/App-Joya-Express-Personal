@@ -4,6 +4,8 @@ import 'package:joya_express/core/constants/app_text_styles.dart';
 import 'package:joya_express/presentation/modules/routes/app_routes.dart';
 
 class DriverPendingApprovalScreen extends StatelessWidget {
+  const DriverPendingApprovalScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -124,7 +126,7 @@ class DriverPendingApprovalScreen extends StatelessWidget {
               SizedBox(height: 32),
               
               // Botón de iniciar sesión
-              Container(
+              SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(

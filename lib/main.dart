@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:joya_express/core/network/api_client.dart';
@@ -10,15 +9,20 @@ import 'package:joya_express/presentation/modules/auth/Driver/viewmodels/driver_
 import 'package:joya_express/presentation/modules/auth/Passenger/viewmodels/auth_viewmodel.dart';
 import 'package:joya_express/presentation/modules/home/viewmodels/map_viewmodel.dart';
 import 'package:joya_express/data/services/enhanced_vehicle_trip_service.dart';
-import 'package:joya_express/data/services/dio_config.dart';
 import 'package:joya_express/core/di/service_locator.dart';
+import 'package:joya_express/presentation/modules/home/viewmodels/ofertas_viewmodel.dart';
 import 'package:provider/provider.dart';
 import 'presentation/modules/routes/app_routes.dart';
+import 'presentation/providers/ride_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   // Asegurarse de que los bindings de Flutter estén inicializados
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Inicializar SharedPreferences
+  final prefs = await SharedPreferences.getInstance();
+  sl.registerSingleton<SharedPreferences>(prefs);
 
   // ========== CONFIGURACIÓN DE DEBUG COMPLETO ==========
   // Capturar todos los errores de Flutter
@@ -127,6 +131,15 @@ void main() async {
         // DriverAuthViewModel usando service locator
         ChangeNotifierProvider<DriverAuthViewModel>.value(
           value: sl<DriverAuthViewModel>(),
+        ),
+
+        // RideProvider usando service locator
+        ChangeNotifierProvider<RideProvider>.value(
+          value: sl<RideProvider>(),
+        ),
+        // OfertasViewModel usando service locator
+        ChangeNotifierProvider<OfertasViewModel>.value(
+          value: sl<OfertasViewModel>(),
         ),
         // =============================================================
       ],

@@ -3,6 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:joya_express/core/constants/app_colors.dart';
 import 'package:joya_express/core/constants/app_text_styles.dart';
 
+/// DriverRequestList
+/// -----------------
+/// Widget que muestra la lista de solicitudes de pasajeros.
+/// Incluye estado vacío, manejo de errores y pull-to-refresh.
+
 /**
  * DriverRequestList OPTIMIZADA
  * -----------------

@@ -16,6 +16,7 @@ class DriverEntity {
   final List<String>? metodosPago;
   final DateTime? fechaExpiracionBrevete;
   final Map<String, String>? contactoEmergencia;
+  final double calificacion;
 
   DriverEntity({
     required this.id,
@@ -35,6 +36,7 @@ class DriverEntity {
     this.metodosPago,
     this.fechaExpiracionBrevete,
     this.contactoEmergencia,
+    this.calificacion = 0.0,
   });
 
   // Método copyWith para crear copias con campos modificados
@@ -56,6 +58,7 @@ class DriverEntity {
     List<String>? metodosPago,
     DateTime? fechaExpiracionBrevete,
     Map<String, String>? contactoEmergencia,
+    double? calificacion,
   }) {
     return DriverEntity(
       id: id ?? this.id,
@@ -75,6 +78,7 @@ class DriverEntity {
       metodosPago: metodosPago ?? this.metodosPago,
       fechaExpiracionBrevete: fechaExpiracionBrevete ?? this.fechaExpiracionBrevete,
       contactoEmergencia: contactoEmergencia ?? this.contactoEmergencia,
+      calificacion: calificacion ?? this.calificacion,
     );
   }
 }

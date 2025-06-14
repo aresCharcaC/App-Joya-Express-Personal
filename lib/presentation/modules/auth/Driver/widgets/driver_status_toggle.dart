@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:joya_express/core/constants/app_text_styles.dart';
 
-/**
- * DriverStatusToggle
- * ------------------
- * Widget que permite al conductor cambiar su estado de disponibilidad.
- * Muestra dos chips: "Disponible" y "Ocupado" con diseño mejorado.
- */
+/// DriverStatusToggle
+/// ------------------
+/// Widget que permite al conductor cambiar su estado de disponibilidad.
+/// Muestra dos chips: "Disponible" y "Ocupado" con diseño mejorado.
 class DriverStatusToggle extends StatelessWidget {
   final bool isAvailable;
   final Function(bool) onStatusChanged;

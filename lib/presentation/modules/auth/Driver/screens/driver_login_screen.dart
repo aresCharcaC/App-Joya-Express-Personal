@@ -5,6 +5,8 @@ import '../../../../../../core/constants/app_text_styles.dart';
 import '../../../../../../core/constants/app_colors.dart';
 
 class DriverLoginScreen extends StatefulWidget {
+  const DriverLoginScreen({super.key});
+
   @override
   State<DriverLoginScreen> createState() => _DriverLoginScreenState();
 }

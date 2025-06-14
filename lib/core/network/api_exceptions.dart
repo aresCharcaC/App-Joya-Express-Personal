@@ -19,10 +19,9 @@ class NetworkException extends ApiException {
 }
 
 class ServerException extends ApiException {
-  ServerException({String? message, int? statusCode}) 
+  ServerException({String? message, super.statusCode}) 
     : super(
-        message: message ?? 'Error del servidor', 
-        statusCode: statusCode
+        message: message ?? 'Error del servidor'
       );
 }
 

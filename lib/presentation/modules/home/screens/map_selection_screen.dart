@@ -6,7 +6,6 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../domain/entities/location_entity.dart';
 import '../../../../data/services/location_service.dart';
-import '../widgets/map_view_widget.dart';
 import '../viewmodels/map_viewmodel.dart';
 
 /// Pantalla para seleccionar destino tocando en el mapa CON PINS CORREGIDOS

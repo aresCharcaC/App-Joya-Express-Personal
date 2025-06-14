@@ -2,9 +2,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:joya_express/data/models/user/ride_request_model.dart';
 import '../../../../../data/services/rides_service.dart';
 import '../../../../../data/services/websocket_service.dart';
-import '../../../../../data/models/ride_request_model.dart';
 import 'dart:math';
 
 class DriverHomeViewModel extends ChangeNotifier {

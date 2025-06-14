@@ -8,6 +8,8 @@ import 'package:joya_express/presentation/modules/routes/app_routes.dart';
 import 'package:provider/provider.dart';
 
 class DriverRegisterScreen extends StatefulWidget {
+  const DriverRegisterScreen({super.key});
+
   @override
   _DriverRegisterScreenState createState() => _DriverRegisterScreenState();
 }
@@ -682,6 +684,33 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
                 ),
               )
               .toList(),
+          ...rules.map((rule) => Padding(
+            padding: EdgeInsets.only(bottom: 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  margin: EdgeInsets.only(top: 2),
+                  child: Icon(
+                    rule.isValid ? Icons.check_circle : Icons.radio_button_unchecked,
+                    size: 16,
+                    color: rule.isValid ? AppColors.success : AppColors.textSecondary,
+                  ),
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    rule.message,
+                    style: AppTextStyles.interCaption.copyWith(
+                      color: rule.isValid ? AppColors.success : AppColors.textSecondary,
+                      decoration: rule.isValid ? TextDecoration.lineThrough : null,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )),
         ],
       ),
     );
@@ -851,7 +880,7 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: SizedBox(
         width: 80,
         child: Column(
           children: [
@@ -925,7 +954,7 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
   }
 
   Widget _buildRegisterButton(DriverAuthViewModel viewModel) {
-    return Container(
+    return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton(

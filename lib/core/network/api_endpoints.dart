@@ -2,7 +2,6 @@ import 'package:joya_express/core/config/app_config.dart';
 
 // lib/core/network/api_endpoints.dart
 class ApiEndpoints {
-
   static String get baseUrl => AppConfig.baseUrl;
 
   // Headers para peticiones JSON
@@ -42,7 +41,7 @@ class ApiEndpoints {
       return baseUrl.replaceFirst('http://', 'ws://');
     }
 
-    return 'wss://f75f-45-236-45-225.ngrok-free.app:443';
+    return 'wss://c012-38-255-105-31.ngrok-free.app:443';
   }
 
   // ✅ MANTENER ENDPOINTS ORIGINALES EXISTENTES

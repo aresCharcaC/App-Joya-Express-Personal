@@ -1,5 +1,4 @@
 import 'package:latlong2/latlong.dart';
-import 'package:trip_routing/trip_routing.dart' as tr;
 import './location_entity.dart';
 
 /// Entidad que representa un viaje completo calculado
@@ -10,7 +9,9 @@ class TripEntity {
   final LocationEntity pickup;
   final LocationEntity destination;
   final DateTime calculatedAt;
-  final tr.Trip? originalTrip; // Referencia al Trip original de trip_routing
+  final String?
+  routingEngine; // Indica qué motor de routing se usó (OSRM, etc.)
+  final Map<String, dynamic>? metadata; // Metadatos adicionales del routing
 
   const TripEntity({
     required this.routePoints,
@@ -19,7 +20,8 @@ class TripEntity {
     required this.pickup,
     required this.destination,
     required this.calculatedAt,
-    this.originalTrip,
+    this.routingEngine,
+    this.metadata,
   });
 
   TripEntity copyWith({
@@ -29,7 +31,8 @@ class TripEntity {
     LocationEntity? pickup,
     LocationEntity? destination,
     DateTime? calculatedAt,
-    tr.Trip? originalTrip,
+    String? routingEngine,
+    Map<String, dynamic>? metadata,
   }) {
     return TripEntity(
       routePoints: routePoints ?? this.routePoints,
@@ -38,12 +41,13 @@ class TripEntity {
       pickup: pickup ?? this.pickup,
       destination: destination ?? this.destination,
       calculatedAt: calculatedAt ?? this.calculatedAt,
-      originalTrip: originalTrip ?? this.originalTrip,
+      routingEngine: routingEngine ?? this.routingEngine,
+      metadata: metadata ?? this.metadata,
     );
   }
 
   @override
   String toString() {
-    return 'TripEntity(distance: ${distanceKm.toStringAsFixed(2)}km, duration: ${durationMinutes}min, points: ${routePoints.length})';
+    return 'TripEntity(distance: ${distanceKm.toStringAsFixed(2)}km, duration: ${durationMinutes}min, points: ${routePoints.length}, engine: ${routingEngine ?? "unknown"})';
   }
 }

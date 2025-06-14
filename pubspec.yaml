@@ -53,8 +53,9 @@ dependencies:
   # MAPA Y UBICACIÓN
   flutter_map: ^8.1.1
   geolocator: ^14.0.1
-  trip_routing: ^0.0.13
   latlong2: ^0.9.1
+  osrm: ^0.0.8
+  
 
   #Para seleccionar archivos del dispositivo
   file_picker: ^10.1.9

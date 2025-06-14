@@ -34,7 +34,7 @@ void main() async {
     print('Stack trace:');
     print(details.stack);
     print('==========================================');
-    
+
     // En modo debug, también mostrar en pantalla roja
     if (kDebugMode) {
       FlutterError.presentError(details);
@@ -59,7 +59,6 @@ void main() async {
   print('✅ Sistema de inyección configurado');
   // =========================================================
 
-
   // ========== CONFIGURACIÓN MANUAL DE AUTH (LEGACY) ==========
   print('🚀 Iniciando Joya Express con autenticación REAL...');
 
@@ -76,20 +75,13 @@ void main() async {
   print('✅ Repositorio de autenticación configurado (manual)');
   // ===========================================================
 
-
   // ========== INICIALIZACIÓN DE SERVICIOS DE RUTA ==========
-  try {
-    await EnhancedVehicleTripService().initialize();
-    print('✅ Servicios de ruta inicializados correctamente');
-  } catch (e, stackTrace) {
-    print('❌ Error inicializando servicios de ruta: $e');
-    print('Stack trace: $stackTrace');
-  }
+
   // =========================================================
 
   // ========== INICIALIZACIÓN DE AUTENTICACIÓN MANUAL ==========
   final authViewModel = AuthViewModel(authRepository: authRepository);
-  
+
   try {
     await authViewModel.loadCurrentUser();
     print('✅ Usuario actual cargado');
@@ -105,26 +97,22 @@ void main() async {
     print('Stack trace: $stackTrace');
   }
   // ============================================================
-  
-  // ====================================================
 
+  // ====================================================
 
   // ========== INICIAR APLICACIÓN ==========
   runApp(
     MultiProvider(
       providers: [
-
         // ========== PROVIDERS MANUALES (LEGACY) ==========
         // Provider de autenticación con repositorio real
-        ChangeNotifierProvider.value(value: authViewModel), 
-        
+        ChangeNotifierProvider.value(value: authViewModel),
+
         // Provider del mapa
         ChangeNotifierProvider(create: (_) => MapViewModel()),
-        
+
         // DriverHomeViewModel (manual)
-        ChangeNotifierProvider(
-          create: (_) => DriverHomeViewModel(),
-        ),
+        ChangeNotifierProvider(create: (_) => DriverHomeViewModel()),
         // =================================================
 
         // ========== PROVIDERS CON INYECCIÓN DE DEPENDENCIAS ==========
@@ -134,9 +122,7 @@ void main() async {
         ),
 
         // RideProvider usando service locator
-        ChangeNotifierProvider<RideProvider>.value(
-          value: sl<RideProvider>(),
-        ),
+        ChangeNotifierProvider<RideProvider>.value(value: sl<RideProvider>()),
         // OfertasViewModel usando service locator
         ChangeNotifierProvider<OfertasViewModel>.value(
           value: sl<OfertasViewModel>(),
@@ -152,13 +138,19 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-  
+
   @override
   Widget build(BuildContext context) {
     // Obténemos los ViewModels del Provider
     final authViewModel = Provider.of<AuthViewModel>(context, listen: true);
-    final driverAuthViewModel = Provider.of<DriverAuthViewModel>(context, listen: true);
-    final driverHomeViewModel = Provider.of<DriverHomeViewModel>(context, listen: true);
+    final driverAuthViewModel = Provider.of<DriverAuthViewModel>(
+      context,
+      listen: true,
+    );
+    final driverHomeViewModel = Provider.of<DriverHomeViewModel>(
+      context,
+      listen: true,
+    );
 
     // Lógica para decidir la ruta inicial
     String initialRoute;
@@ -189,7 +181,7 @@ class MyApp extends StatelessWidget {
       ),
       // initialRoute: initialRoute, // ← Ahora es dinámico
       //Probar la vista de mapas
-      initialRoute: AppRoutes.welcome, 
+      initialRoute: AppRoutes.welcome,
 
       // Definimos las rutas de la aplicación
       routes: AppRoutes.routes,

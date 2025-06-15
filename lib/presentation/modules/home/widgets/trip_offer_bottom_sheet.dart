@@ -23,6 +23,8 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
   double _recommendedPrice = 0.0;
   double _userPrice = 0.0;
   bool _isLoading = false;
+  String _selectedPaymentMethod =
+      'efectivo'; // Método de pago seleccionado por defecto
 
   @override
   void initState() {
@@ -64,7 +66,9 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
     final mapViewModel = Provider.of<MapViewModel>(context, listen: false);
     final rideProvider = Provider.of<RideProvider>(context, listen: false);
 
-    if (!mapViewModel.hasRoute || !mapViewModel.hasPickupLocation || !mapViewModel.hasDestinationLocation) {
+    if (!mapViewModel.hasRoute ||
+        !mapViewModel.hasPickupLocation ||
+        !mapViewModel.hasDestinationLocation) {
       Navigator.pop(context); // Cerrar el BottomSheet primero
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -89,7 +93,8 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
         origenDireccion: mapViewModel.pickupLocation!.address,
         destinoDireccion: mapViewModel.destinationLocation!.address,
         precioSugerido: _userPrice,
-        metodoPagoPreferido: 'efectivo', // Por defecto efectivo
+        metodoPagoPreferido:
+            _selectedPaymentMethod, // Usar el método seleccionado
         estado: 'pendiente',
         fechaCreacion: DateTime.now(),
       );
@@ -111,19 +116,25 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
         } else {
           // Cerrar el BottomSheet antes de mostrar el error
           Navigator.pop(context);
-          
+
           // Si no fue exitoso, mostrar el error del provider
           String errorMessage = 'Error al crear la solicitud';
-          
+
           if (rideProvider.error != null) {
-            if (rideProvider.error!.contains('NO hay conductores cercanos disponibles')) {
-              errorMessage = 'No hay conductores disponibles en tu zona. Por favor, intenta más tarde.';
+            if (rideProvider.error!.contains(
+              'NO hay conductores cercanos disponibles',
+            )) {
+              errorMessage =
+                  'No hay conductores disponibles en tu zona. Por favor, intenta más tarde.';
             } else if (rideProvider.error!.contains('Error de validación')) {
-              errorMessage = 'Error en los datos de la solicitud. Por favor, verifica la información.';
+              errorMessage =
+                  'Error en los datos de la solicitud. Por favor, verifica la información.';
             } else if (rideProvider.error!.contains('Error de autenticación')) {
-              errorMessage = 'Error de sesión. Por favor, vuelve a iniciar sesión.';
+              errorMessage =
+                  'Error de sesión. Por favor, vuelve a iniciar sesión.';
             } else if (rideProvider.error!.contains('Error de conexión')) {
-              errorMessage = 'Error de conexión. Por favor, verifica tu conexión a internet.';
+              errorMessage =
+                  'Error de conexión. Por favor, verifica tu conexión a internet.';
             }
           }
 
@@ -158,17 +169,20 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
       if (mounted) {
         // Cerrar el BottomSheet antes de mostrar el error
         Navigator.pop(context);
-        
+
         String errorMessage = 'Error al crear la solicitud';
-        
+
         if (e.toString().contains('NO hay conductores cercanos disponibles')) {
-          errorMessage = 'No hay conductores disponibles en tu zona. Por favor, intenta más tarde.';
+          errorMessage =
+              'No hay conductores disponibles en tu zona. Por favor, intenta más tarde.';
         } else if (e.toString().contains('Error de validación')) {
-          errorMessage = 'Error en los datos de la solicitud. Por favor, verifica la información.';
+          errorMessage =
+              'Error en los datos de la solicitud. Por favor, verifica la información.';
         } else if (e.toString().contains('Error de autenticación')) {
           errorMessage = 'Error de sesión. Por favor, vuelve a iniciar sesión.';
         } else if (e.toString().contains('Error de conexión')) {
-          errorMessage = 'Error de conexión. Por favor, verifica tu conexión a internet.';
+          errorMessage =
+              'Error de conexión. Por favor, verifica tu conexión a internet.';
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -215,7 +229,9 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
         }
 
         return Container(
-          height: MediaQuery.of(context).size.height * 0.9,
+          height:
+              MediaQuery.of(context).size.height *
+              0.85, // Reducido para evitar overflow
           decoration: const BoxDecoration(
             color: Color(0xFF2D2D2D), // Fondo oscuro como en la imagen
             borderRadius: BorderRadius.only(
@@ -228,33 +244,29 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
               // Handle del bottom sheet
               _buildHandle(),
 
-              // Contenido principal
+              // Contenido principal con scroll
               Expanded(
-                child: Padding(
+                child: SingleChildScrollView(
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      const SizedBox(height: 20),
-
-                      // Campo de precio grande (IGUAL AL DISEÑO)
+                      const SizedBox(height: 10), // Reducido
+                      // Campo de precio grande (OPTIMIZADO)
                       _buildPriceInputSection(),
 
-                      const SizedBox(height: 32),
-
-                      // Métodos de pago (IGUAL AL DISEÑO)
+                      const SizedBox(height: 20), // Reducido
+                      // Métodos de pago (FUNCIONAL)
                       _buildPaymentMethodsSection(),
 
-                      const SizedBox(height: 32),
-
-                      // Información de ruta (IGUAL AL DISEÑO)
+                      const SizedBox(height: 20), // Reducido
+                      // Información de ruta (OPTIMIZADO)
                       _buildRouteInfoSection(mapViewModel),
 
-                      const Spacer(),
-
-                      // Botón buscar mototaxi (IGUAL AL DISEÑO)
+                      const SizedBox(height: 24), // Espacio antes del botón
+                      // Botón buscar mototaxi
                       _buildSearchButton(),
 
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 20), // Espacio final
                     ],
                   ),
                 ),
@@ -278,11 +290,11 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
     );
   }
 
-  /// Campo de precio grande EXACTAMENTE como en la imagen
+  /// Campo de precio grande OPTIMIZADO para menos espacio
   Widget _buildPriceInputSection() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20), // Reducido de 24 a 20
       decoration: BoxDecoration(
         color: const Color(0xFF505050), // Gris más claro
         borderRadius: BorderRadius.circular(16),
@@ -298,7 +310,7 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
               Text(
                 'S/',
                 style: AppTextStyles.poppinsHeading1.copyWith(
-                  fontSize: 48,
+                  fontSize: 40, // Reducido de 48 a 40
                   color: AppColors.white,
                   fontWeight: FontWeight.w300,
                 ),
@@ -309,7 +321,7 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
                     controller: _priceController,
                     focusNode: _priceFocusNode,
                     style: AppTextStyles.poppinsHeading1.copyWith(
-                      fontSize: 64,
+                      fontSize: 56, // Reducido de 64 a 56
                       fontWeight: FontWeight.bold,
                       color: AppColors.white,
                     ),
@@ -322,7 +334,7 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
                       border: InputBorder.none,
                       hintText: _recommendedPrice.toStringAsFixed(0),
                       hintStyle: AppTextStyles.poppinsHeading1.copyWith(
-                        fontSize: 64,
+                        fontSize: 56, // Reducido de 64 a 56
                         fontWeight: FontWeight.bold,
                         color: AppColors.white.withOpacity(0.3),
                       ),
@@ -335,14 +347,13 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
             ],
           ),
 
-          const SizedBox(height: 16),
-
-          // Precio recomendado IGUAL AL DISEÑO
+          const SizedBox(height: 12), // Reducido de 16 a 12
+          // Precio recomendado
           Text(
             'Precio Recomendado: S/${_recommendedPrice.toStringAsFixed(0)}',
             style: AppTextStyles.interBody.copyWith(
               color: AppColors.white.withOpacity(0.7),
-              fontSize: 16,
+              fontSize: 14, // Reducido de 16 a 14
             ),
           ),
         ],
@@ -350,34 +361,170 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
     );
   }
 
-  /// Métodos de pago como botón centrado (SIN funcionalidad por ahora)
+  /// Selector de métodos de pago funcional
   Widget _buildPaymentMethodsSection() {
-    return Center(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Título de la sección
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 12),
+          child: Text(
+            'Método de Pago',
+            style: AppTextStyles.interBody.copyWith(
+              color: AppColors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+
+        // Opciones de pago
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: const Color(0xFF505050),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              // Efectivo
+              _buildPaymentOption(
+                'efectivo',
+                'Efectivo',
+                Icons.money,
+                'Paga directamente al conductor',
+              ),
+
+              // Divisor
+              Container(
+                height: 1,
+                color: AppColors.white.withOpacity(0.1),
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+              ),
+
+              // Yape
+              _buildPaymentOption(
+                'yape',
+                'Yape',
+                Icons.phone_android,
+                'Pago digital con Yape',
+              ),
+
+              // Divisor
+              Container(
+                height: 1,
+                color: AppColors.white.withOpacity(0.1),
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+              ),
+
+              // Plin
+              _buildPaymentOption(
+                'plin',
+                'Plin',
+                Icons.account_balance_wallet,
+                'Pago digital con Plin',
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Widget para cada opción de pago (COMPACTO)
+  Widget _buildPaymentOption(
+    String value,
+    String title,
+    IconData icon,
+    String subtitle,
+  ) {
+    final isSelected = _selectedPaymentMethod == value;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedPaymentMethod = value;
+        });
+      },
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: const Color(0xFF505050),
-          borderRadius: BorderRadius.circular(12),
-        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ), // Reducido padding vertical
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.credit_card, color: AppColors.white, size: 24),
-            const SizedBox(width: 12),
-            Text(
-              'Métodos de Pago',
-              style: AppTextStyles.poppinsHeading3.copyWith(
-                color: AppColors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
+            // Icono del método de pago (más pequeño)
+            Container(
+              width: 32, // Reducido de 40 a 32
+              height: 32, // Reducido de 40 a 32
+              decoration: BoxDecoration(
+                color:
+                    isSelected
+                        ? AppColors.primary.withOpacity(0.2)
+                        : AppColors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6), // Reducido de 8 a 6
+              ),
+              child: Icon(
+                icon,
+                color: isSelected ? AppColors.primary : AppColors.white,
+                size: 18, // Reducido de 20 a 18
               ),
             ),
-            const SizedBox(width: 8),
-            Icon(
-              Icons.arrow_forward_ios,
-              color: AppColors.white.withOpacity(0.6),
-              size: 16,
+
+            const SizedBox(width: 10), // Reducido de 12 a 10
+            // Información del método (más compacta)
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppTextStyles.interBody.copyWith(
+                      color: AppColors.white,
+                      fontSize: 15, // Reducido de 16 a 15
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: AppTextStyles.interCaption.copyWith(
+                      color: AppColors.white.withOpacity(0.7),
+                      fontSize: 11, // Reducido de 12 a 11
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Radio button (más pequeño)
+            Container(
+              width: 18, // Reducido de 20 a 18
+              height: 18, // Reducido de 20 a 18
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color:
+                      isSelected
+                          ? AppColors.primary
+                          : AppColors.white.withOpacity(0.5),
+                  width: 2,
+                ),
+              ),
+              child:
+                  isSelected
+                      ? Center(
+                        child: Container(
+                          width: 8, // Reducido de 10 a 8
+                          height: 8, // Reducido de 10 a 8
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      )
+                      : null,
             ),
           ],
         ),
@@ -496,22 +643,23 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: _isLoading
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  color: AppColors.white,
-                  strokeWidth: 2,
+        child:
+            _isLoading
+                ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: AppColors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+                : Text(
+                  'Buscar Mototaxi',
+                  style: AppTextStyles.poppinsButton.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              )
-            : Text(
-                'Buscar Mototaxi',
-                style: AppTextStyles.poppinsButton.copyWith(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
       ),
     );
   }

@@ -9,7 +9,7 @@ import 'package:joya_express/core/constants/app_text_styles.dart';
 import '../viewmodels/driver_home_viewmodel.dart';
 
 class RequestDetailScreen extends StatelessWidget {
-  final MockSolicitud solicitud;
+  final dynamic solicitud;
 
   const RequestDetailScreen({super.key, required this.solicitud});
 
@@ -61,7 +61,12 @@ class RequestDetailScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: FlutterMap(
           options: MapOptions(
-            initialCenter: LatLng(solicitud.origenLat, solicitud.origenLng),
+            initialCenter: LatLng(
+              (solicitud['origenLat'] ?? solicitud['origen_lat'] ?? 0.0)
+                  .toDouble(),
+              (solicitud['origenLng'] ?? solicitud['origen_lng'] ?? 0.0)
+                  .toDouble(),
+            ),
             initialZoom: 14.0,
             minZoom: 10.0,
             maxZoom: 18.0,
@@ -118,7 +123,10 @@ class RequestDetailScreen extends StatelessWidget {
     // 🟢 Marcador del punto de recogida (verde)
     markers.add(
       Marker(
-        point: LatLng(solicitud.origenLat, solicitud.origenLng),
+        point: LatLng(
+          (solicitud['origenLat'] ?? solicitud['origen_lat'] ?? 0.0).toDouble(),
+          (solicitud['origenLng'] ?? solicitud['origen_lng'] ?? 0.0).toDouble(),
+        ),
         width: 40,
         height: 40,
         child: Container(
@@ -142,7 +150,12 @@ class RequestDetailScreen extends StatelessWidget {
     // 🔴 Marcador del punto de destino (rojo)
     markers.add(
       Marker(
-        point: LatLng(solicitud.destinoLat, solicitud.destinoLng),
+        point: LatLng(
+          (solicitud['destinoLat'] ?? solicitud['destino_lat'] ?? 0.0)
+              .toDouble(),
+          (solicitud['destinoLng'] ?? solicitud['destino_lng'] ?? 0.0)
+              .toDouble(),
+        ),
         width: 40,
         height: 40,
         child: Container(
@@ -221,9 +234,10 @@ class RequestDetailScreen extends StatelessWidget {
           ),
           child: ClipOval(
             child:
-                solicitud.foto.isNotEmpty
+                (solicitud['foto'] ?? solicitud['usuario_foto'] ?? '')
+                        .isNotEmpty
                     ? Image.network(
-                      solicitud.foto,
+                      solicitud['foto'] ?? solicitud['usuario_foto'] ?? '',
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => _buildAvatarFallback(),
                     )
@@ -239,7 +253,7 @@ class RequestDetailScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                solicitud.nombre,
+                solicitud['nombre'] ?? solicitud['usuario_nombre'] ?? 'Usuario',
                 style: AppTextStyles.poppinsHeading3.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
@@ -251,7 +265,7 @@ class RequestDetailScreen extends StatelessWidget {
                   const Icon(Icons.star, color: Colors.amber, size: 16),
                   const SizedBox(width: 4),
                   Text(
-                    '${solicitud.rating.toStringAsFixed(1)} (${solicitud.votos} votos)',
+                    '${((solicitud['rating'] ?? solicitud['usuario_rating'] ?? 4.5).toDouble()).toStringAsFixed(1)} (${solicitud['votos'] ?? solicitud['usuario_votos'] ?? 0} votos)',
                     style: AppTextStyles.poppinsHeading2.copyWith(
                       color: AppColors.textSecondary,
                     ),
@@ -270,7 +284,10 @@ class RequestDetailScreen extends StatelessWidget {
       color: AppColors.primaryLight,
       child: Center(
         child: Text(
-          solicitud.nombre.isNotEmpty ? solicitud.nombre[0].toUpperCase() : '?',
+          (solicitud['nombre'] ?? solicitud['usuario_nombre'] ?? '').isNotEmpty
+              ? (solicitud['nombre'] ?? solicitud['usuario_nombre'] ?? '')[0]
+                  .toUpperCase()
+              : '?',
           style: AppTextStyles.poppinsHeading2.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.bold,

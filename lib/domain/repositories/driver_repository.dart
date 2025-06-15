@@ -1,4 +1,5 @@
 import 'package:joya_express/domain/entities/driver_entity.dart';
+
 // Define los métodos que el repositorio de conductores debe implementar
 abstract class DriverRepository {
   Future<DriverEntity> register({
@@ -26,6 +27,10 @@ abstract class DriverRepository {
   Future<List<dynamic>> getVehicles();
   Future<Map<String, dynamic>> uploadDocument(Map<String, dynamic> data);
   Future<void> updateLocation(double lat, double lng);
-  Future<void> setAvailability(bool disponible);
-  Future<List<dynamic>> getAvailableDrivers(double lat, double lng, double radius);
+  Future<void> setAvailability(bool disponible, {double? lat, double? lng});
+  Future<List<dynamic>> getAvailableDrivers(
+    double lat,
+    double lng,
+    double radius,
+  );
 }

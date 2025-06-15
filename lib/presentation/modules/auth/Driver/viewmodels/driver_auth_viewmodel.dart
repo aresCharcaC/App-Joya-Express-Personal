@@ -46,7 +46,7 @@ class DriverAuthViewModel extends ChangeNotifier {
     try {
       _isLoading = true;
       notifyListeners();
-      
+
       final driver = await _repository.getProfile();
       _currentDriver = driver;
       _isAuthenticated = true;
@@ -68,7 +68,7 @@ class DriverAuthViewModel extends ChangeNotifier {
       print('Archivo: $filePath');
       print('Tipo: $type');
       print('FileUploadService baseUrl: ${_fileUploadService.baseUrl}');
-      
+
       // Verificar que el archivo existe
       final file = File(filePath);
       if (!await file.exists()) {
@@ -76,21 +76,21 @@ class DriverAuthViewModel extends ChangeNotifier {
         _setError('El archivo no existe');
         return null;
       }
-      
+
       final fileSize = await file.length();
       print('📁 Tamaño del archivo: $fileSize bytes');
-      
+
       if (fileSize == 0) {
         print('❌ ERROR: El archivo está vacío');
         _setError('El archivo está vacío');
         return null;
       }
-      
+
       _setLoading(true);
-      
+
       print('🚀 Iniciando upload...');
       final url = await _fileUploadService.uploadFile(filePath, type);
-      
+
       if (url.isNotEmpty) {
         print('✅ Upload exitoso, URL: $url');
         print('=== FIN DEBUG UPLOAD ===');
@@ -141,7 +141,7 @@ class DriverAuthViewModel extends ChangeNotifier {
         fotoLateral: fotoLateral,
         fechaExpiracionBrevete: fechaExpiracionBrevete,
       );
-      
+
       _currentDriver = driver;
       _isAuthenticated = true;
       _setLoading(false);
@@ -161,7 +161,7 @@ class DriverAuthViewModel extends ChangeNotifier {
       print('🔐 Iniciando login...');
       _setLoading(true);
       clearError();
-      
+
       final driver = await _repository.login(dni, password);
       _currentDriver = driver;
       _isAuthenticated = true;
@@ -180,7 +180,7 @@ class DriverAuthViewModel extends ChangeNotifier {
   Future<void> logout() async {
     try {
       _setLoading(true);
-      
+
       // Primero intentar hacer logout en el backend
       try {
         await _repository.logout();
@@ -189,13 +189,12 @@ class DriverAuthViewModel extends ChangeNotifier {
         // Si falla el logout del backend, continuar con el logout local
         print('⚠️ Error en logout del backend: $e');
       }
-      
+
       // Siempre limpiar el estado local independientemente del resultado del backend
       _currentDriver = null;
       _isAuthenticated = false;
       clearError();
       print('✅ Logout local completado');
-      
     } catch (e) {
       // Manejar cualquier error pero aún así limpiar el estado local
       print('❌ Error general en logout: $e');
@@ -229,13 +228,13 @@ class DriverAuthViewModel extends ChangeNotifier {
     try {
       _setLoading(true);
       clearError();
-      
+
       final driver = await _repository.updateProfile(
         nombreCompleto: nombreCompleto,
         telefono: telefono,
         fotoPerfil: fotoPerfil,
       );
-      
+
       _currentDriver = driver;
       _setLoading(false);
       return true;
@@ -253,12 +252,12 @@ class DriverAuthViewModel extends ChangeNotifier {
     try {
       _setLoading(true);
       clearError();
-      
+
       await _repository.addVehicle({
         'placa': placa,
         'foto_lateral': fotoLateral,
       });
-      
+
       await _refreshProfile();
       _setLoading(false);
       return true;
@@ -276,13 +275,13 @@ class DriverAuthViewModel extends ChangeNotifier {
     try {
       _setLoading(true);
       clearError();
-      
+
       await _repository.uploadDocument({
         'foto_brevete': fotoBrevete,
         if (fechaExpiracion != null)
           'fecha_expiracion': fechaExpiracion.toIso8601String(),
       });
-      
+
       await _refreshProfile();
       _setLoading(false);
       return true;
@@ -297,14 +296,16 @@ class DriverAuthViewModel extends ChangeNotifier {
     try {
       _setLoading(true);
       clearError();
-      
+
+      // Las coordenadas son opcionales
+      // El conductor puede cambiar disponibilidad sin GPS
       await _repository.setAvailability(disponible);
-      
+
       if (_currentDriver != null) {
         _currentDriver = _currentDriver!.copyWith(disponible: disponible);
         notifyListeners();
       }
-      
+
       _setLoading(false);
       return true;
     } catch (e) {
@@ -318,9 +319,9 @@ class DriverAuthViewModel extends ChangeNotifier {
     try {
       _setLoading(true);
       clearError();
-      
+
       await _repository.updateLocation(lat, lng);
-      
+
       if (_currentDriver != null) {
         _currentDriver = _currentDriver!.copyWith(
           ubicacionLat: lat,
@@ -328,7 +329,7 @@ class DriverAuthViewModel extends ChangeNotifier {
         );
         notifyListeners();
       }
-      
+
       _setLoading(false);
       return true;
     } catch (e) {
@@ -338,11 +339,15 @@ class DriverAuthViewModel extends ChangeNotifier {
     }
   }
 
-  Future<List<dynamic>> getAvailableDrivers(double lat, double lng, double radius) async {
+  Future<List<dynamic>> getAvailableDrivers(
+    double lat,
+    double lng,
+    double radius,
+  ) async {
     try {
       _setLoading(true);
       clearError();
-      
+
       final drivers = await _repository.getAvailableDrivers(lat, lng, radius);
       _setLoading(false);
       return drivers;
@@ -366,7 +371,7 @@ class DriverAuthViewModel extends ChangeNotifier {
 
   void _handleError(dynamic error) {
     String message = 'Error desconocido';
-    
+
     if (error is ValidationException) {
       message = error.message;
     } else if (error is AuthException) {
@@ -380,7 +385,7 @@ class DriverAuthViewModel extends ChangeNotifier {
     } else {
       message = error.toString();
     }
-    
+
     _setError(message);
   }
 

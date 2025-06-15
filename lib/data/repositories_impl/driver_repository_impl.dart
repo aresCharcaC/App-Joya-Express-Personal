@@ -5,6 +5,7 @@ import 'package:joya_express/domain/entities/driver_entity.dart';
 import 'package:joya_express/domain/repositories/driver_repository.dart';
 import '../datasources/driver_remote_datasource.dart';
 import '../datasources/driver_local_datasource.dart';
+
 /**
  * Implementación del repositorio de conductores.
  * Maneja la lógica de negocio y la comunicación
@@ -14,10 +15,11 @@ class DriverRepositoryImpl implements DriverRepository {
   final DriverLocalDataSource local;
   final FileUploadService fileUploadService;
 
-  DriverRepositoryImpl(Dio dio, {
+  DriverRepositoryImpl(
+    Dio dio, {
     required this.remote,
     required this.local,
-    required this.fileUploadService, 
+    required this.fileUploadService,
   });
 
   @override
@@ -64,25 +66,27 @@ class DriverRepositoryImpl implements DriverRepository {
   @override
   Future<void> logout() async {
     await remote.logout();
-    await local.saveDriver(DriverModel(
-      id: '',
-      dni: '',
-      nombreCompleto: '',
-      telefono: '',
-      fotoPerfil: null,
-      estado: '',
-      totalViajes: 0,
-      ubicacionLat: null,
-      ubicacionLng: null,
-      disponible: false,
-      fechaRegistro: null,
-      fechaActualizacion: null,
-      documentos: [],
-      vehiculos: [],
-      metodosPago: [],
-      fechaExpiracionBrevete: null,
-      contactoEmergencia: null,
-    ));
+    await local.saveDriver(
+      DriverModel(
+        id: '',
+        dni: '',
+        nombreCompleto: '',
+        telefono: '',
+        fotoPerfil: null,
+        estado: '',
+        totalViajes: 0,
+        ubicacionLat: null,
+        ubicacionLng: null,
+        disponible: false,
+        fechaRegistro: null,
+        fechaActualizacion: null,
+        documentos: [],
+        vehiculos: [],
+        metodosPago: [],
+        fechaExpiracionBrevete: null,
+        contactoEmergencia: null,
+      ),
+    );
   }
 
   @override
@@ -134,11 +138,13 @@ class DriverRepositoryImpl implements DriverRepository {
       remote.updateLocation(lat, lng);
 
   @override
-  Future<void> setAvailability(bool disponible) =>
-      remote.setAvailability(disponible);
+  Future<void> setAvailability(bool disponible, {double? lat, double? lng}) =>
+      remote.setAvailability(disponible, lat: lat, lng: lng);
 
   @override
   Future<List<dynamic>> getAvailableDrivers(
-          double lat, double lng, double radius) =>
-      remote.getAvailableDrivers(lat, lng, radius);
+    double lat,
+    double lng,
+    double radius,
+  ) => remote.getAvailableDrivers(lat, lng, radius);
 }

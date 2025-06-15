@@ -25,7 +25,17 @@ class DriverHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => DriverHomeViewModel()..init()),
+        ChangeNotifierProvider(
+          create: (_) {
+            final viewModel = DriverHomeViewModel();
+            // Configurar callback para apertura automática
+            viewModel.setAutoOpenCallback((solicitud) {
+              _showRequestDetails(context, solicitud);
+            });
+            viewModel.init();
+            return viewModel;
+          },
+        ),
         // Se asume que DriverAuthViewModel ya está en el árbol de widgets superior
       ],
       child: Scaffold(
@@ -75,8 +85,48 @@ class DriverHomeScreen extends StatelessWidget {
                 DriverStatusToggle(
                   isAvailable: homeVm.disponible,
                   onStatusChanged: (isAvailable) async {
+                    // Mostrar indicador de carga
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          isAvailable
+                              ? 'Activando disponibilidad...'
+                              : 'Desactivando disponibilidad...',
+                        ),
+                        duration: const Duration(seconds: 1),
+                      ),
+                    );
+
+                    // Actualizar estado local primero
                     homeVm.setDisponible(isAvailable);
-                    await authVm.setAvailability(isAvailable);
+
+                    // Actualizar en el backend
+                    final success = await authVm.setAvailability(isAvailable);
+
+                    if (success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            isAvailable
+                                ? 'Ahora estás disponible para recibir solicitudes'
+                                : 'Ya no recibirás nuevas solicitudes',
+                          ),
+                          backgroundColor:
+                              isAvailable ? Colors.green : Colors.orange,
+                        ),
+                      );
+                    } else {
+                      // Revertir cambio si falló
+                      homeVm.setDisponible(!isAvailable);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Error al cambiar disponibilidad. Intenta de nuevo.',
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   },
                 ),
 

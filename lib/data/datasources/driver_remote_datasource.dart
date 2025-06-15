@@ -4,11 +4,13 @@ import 'package:joya_express/core/network/api_exceptions.dart';
 import 'package:joya_express/data/models/driver_response_model.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_endpoints.dart';
+
 /// Servicio encargado de gestionar todas las operaciones de conductor
 class DriverRemoteDataSource {
   final ApiClient _apiClient;
 
-  DriverRemoteDataSource({required ApiClient apiClient}) : _apiClient = apiClient;
+  DriverRemoteDataSource({required ApiClient apiClient})
+    : _apiClient = apiClient;
 
   /// Registra un nuevo conductor
   Future<DriverResponse> register({
@@ -22,33 +24,27 @@ class DriverRemoteDataSource {
     String? fotoLateral,
     DateTime? fechaExpiracionBrevete,
   }) async {
-    final response = await _apiClient.post(
-      ApiEndpoints.driverRegister,
-      {
-        'dni': dni,
-        'nombre_completo': nombreCompleto,
-        'telefono': telefono,
-        'password': password,
-        'placa': placa,
-        'foto_brevete': fotoBrevete,
-        if (fotoPerfil != null) 'foto_perfil': fotoPerfil,
-        if (fotoLateral != null) 'foto_lateral': fotoLateral,
-        if (fechaExpiracionBrevete != null)
-          'fecha_expiracion_brevete': fechaExpiracionBrevete.toIso8601String(),
-      },
-    );
+    final response = await _apiClient.post(ApiEndpoints.driverRegister, {
+      'dni': dni,
+      'nombre_completo': nombreCompleto,
+      'telefono': telefono,
+      'password': password,
+      'placa': placa,
+      'foto_brevete': fotoBrevete,
+      if (fotoPerfil != null) 'foto_perfil': fotoPerfil,
+      if (fotoLateral != null) 'foto_lateral': fotoLateral,
+      if (fechaExpiracionBrevete != null)
+        'fecha_expiracion_brevete': fechaExpiracionBrevete.toIso8601String(),
+    });
     return DriverResponse.fromJson(response);
   }
 
   /// Login de conductor
   Future<DriverLoginResponse> login(String dni, String password) async {
-    final response = await _apiClient.post(
-      ApiEndpoints.driverLogin,
-      {
-        'dni': dni,
-        'password': password,
-      },
-    );
+    final response = await _apiClient.post(ApiEndpoints.driverLogin, {
+      'dni': dni,
+      'password': password,
+    });
     return DriverLoginResponse.fromJson(response);
   }
 
@@ -162,17 +158,32 @@ class DriverRemoteDataSource {
   }
 
   /// Cambiar disponibilidad
-  Future<void> setAvailability(bool disponible) async {
+  Future<void> setAvailability(
+    bool disponible, {
+    double? lat,
+    double? lng,
+  }) async {
     try {
-      await _apiClient.put(ApiEndpoints.driverAvailability, {
-        'disponible': disponible,
-      });
+      final data = <String, dynamic>{'disponible': disponible};
+
+      // Las coordenadas son opcionales
+      if (lat != null && lng != null) {
+        data['lat'] = lat;
+        data['lng'] = lng;
+      }
+
+      await _apiClient.put(ApiEndpoints.driverAvailability, data);
     } catch (e) {
       if (e is AuthException) {
         await refreshToken();
-        await _apiClient.put(ApiEndpoints.driverAvailability, {
-          'disponible': disponible,
-        });
+        final data = <String, dynamic>{'disponible': disponible};
+
+        if (lat != null && lng != null) {
+          data['lat'] = lat;
+          data['lng'] = lng;
+        }
+
+        await _apiClient.put(ApiEndpoints.driverAvailability, data);
       } else {
         rethrow;
       }
@@ -180,17 +191,21 @@ class DriverRemoteDataSource {
   }
 
   /// Buscar conductores disponibles cerca
-  Future<List<dynamic>> getAvailableDrivers(double lat, double lng, double radius) async {
+  Future<List<dynamic>> getAvailableDrivers(
+    double lat,
+    double lng,
+    double radius,
+  ) async {
     try {
       final response = await _apiClient.get(
-        '${ApiEndpoints.driverAvailability}?lat=$lat&lng=$lng&radius=$radius'
+        '${ApiEndpoints.driverAvailability}?lat=$lat&lng=$lng&radius=$radius',
       );
       return response['data'] as List<dynamic>;
     } catch (e) {
       if (e is AuthException) {
         await refreshToken();
         final response = await _apiClient.get(
-          '${ApiEndpoints.driverAvailability}?lat=$lat&lng=$lng&radius=$radius'
+          '${ApiEndpoints.driverAvailability}?lat=$lat&lng=$lng&radius=$radius',
         );
         return response['data'] as List<dynamic>;
       }

@@ -25,6 +25,7 @@ class DriverHomeViewModel extends ChangeNotifier {
   Timer? _locationTimer;
   Timer? _requestsTimer;
   Timer? _pingTimer;
+  Timer? _autoOpenTimer;
 
   // Ubicación actual
   Position? _currentPosition;
@@ -345,7 +346,6 @@ class DriverHomeViewModel extends ChangeNotifier {
 
   /// 🔄 Cambiar disponibilidad del conductor
   Future<void> setDisponible(bool value) async {
-    final oldValue = _disponible;
     _disponible = value;
     notifyListeners();
 
@@ -353,17 +353,17 @@ class DriverHomeViewModel extends ChangeNotifier {
       if (_disponible) {
         await _startLocationUpdates();
         _startRequestsPolling();
+        _startAutoOpenTimer(); // Iniciar apertura automática
         print('✅ Conductor disponible - Servicios iniciados');
       } else {
         _stopLocationUpdates();
         _stopRequestsPolling();
+        _stopAutoOpenTimer(); // Detener apertura automática
         print('⏹️ Conductor no disponible - Servicios detenidos');
       }
     } catch (e) {
       print('❌ Error cambiando disponibilidad: $e');
-      // Revertir cambio en caso de error
-      _disponible = oldValue;
-      notifyListeners();
+      rethrow; // Permitir que el error se propague para manejo en la UI
     }
   }
 
@@ -497,12 +497,81 @@ class DriverHomeViewModel extends ChangeNotifier {
     }
   }
 
+  /// 🚀 Iniciar timer para abrir automáticamente solicitudes cercanas
+  void _startAutoOpenTimer() {
+    _autoOpenTimer?.cancel();
+
+    // Abrir solicitud más cercana cada 30 segundos si está disponible
+    _autoOpenTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (_disponible && _solicitudes.isNotEmpty && _currentPosition != null) {
+        // Encontrar la solicitud más cercana
+        dynamic solicitudMasCercana;
+        double distanciaMinima = double.infinity;
+
+        for (final solicitud in _solicitudes) {
+          try {
+            double origenLat =
+                solicitud['origenLat'] ?? solicitud['origen_lat'] ?? 0.0;
+            double origenLng =
+                solicitud['origenLng'] ?? solicitud['origen_lng'] ?? 0.0;
+
+            final distancia = _calculateHaversineDistance(
+              _currentPosition!.latitude,
+              _currentPosition!.longitude,
+              origenLat,
+              origenLng,
+            );
+
+            if (distancia < distanciaMinima) {
+              distanciaMinima = distancia;
+              solicitudMasCercana = solicitud;
+            }
+          } catch (e) {
+            print('⚠️ Error calculando distancia: $e');
+          }
+        }
+
+        if (solicitudMasCercana != null) {
+          print(
+            '🎯 Abriendo automáticamente solicitud más cercana: ${solicitudMasCercana['id']}',
+          );
+          print(
+            '📍 Distancia: ${(distanciaMinima / 1000).toStringAsFixed(2)} km',
+          );
+
+          // Notificar a la UI para abrir la solicitud
+          _openRequestAutomatically(solicitudMasCercana);
+        }
+      }
+    });
+  }
+
+  /// ⏹️ Detener timer de apertura automática
+  void _stopAutoOpenTimer() {
+    _autoOpenTimer?.cancel();
+    _autoOpenTimer = null;
+  }
+
+  // Callback para apertura automática
+  Function(dynamic)? _onAutoOpenRequest;
+
+  /// Establecer callback para cuando se debe abrir una solicitud automáticamente
+  void setAutoOpenCallback(Function(dynamic) callback) {
+    _onAutoOpenRequest = callback;
+  }
+
+  /// Abrir solicitud automáticamente
+  void _openRequestAutomatically(dynamic solicitud) {
+    _onAutoOpenRequest?.call(solicitud);
+  }
+
   /// 🧹 Limpiar recursos
   @override
   void dispose() {
     _locationTimer?.cancel();
     _requestsTimer?.cancel();
     _pingTimer?.cancel();
+    _autoOpenTimer?.cancel();
     _wsService.disconnect();
     super.dispose();
   }

@@ -6,14 +6,16 @@ import '../viewmodels/map_viewmodel.dart';
 import 'trip_offer_bottom_sheet.dart';
 import '../../../../presentation/providers/ride_provider.dart';
 import '../../../../domain/entities/ride_request_entity.dart';
+import '../screens/driver_search_screen.dart';
 
 /// Panel inferior con campos de origen y destino
 /// Este widget maneja la interfaz para seleccionar ubicaciones y crear solicitudes de viaje
 class LocationInputPanel extends StatelessWidget {
   // Callbacks para manejar interacciones del usuario
-  final VoidCallback? onDestinationTap;      // Se llama al tocar el campo de destino
-  final VoidCallback? onTripOfferTap;        // Se llama al tocar el botón de tarifa
-  final VoidCallback? onSearchMototaxiTap;   // Se llama al tocar el botón de búsqueda
+  final VoidCallback? onDestinationTap; // Se llama al tocar el campo de destino
+  final VoidCallback? onTripOfferTap; // Se llama al tocar el botón de tarifa
+  final VoidCallback?
+  onSearchMototaxiTap; // Se llama al tocar el botón de búsqueda
 
   const LocationInputPanel({
     super.key,
@@ -259,32 +261,39 @@ class LocationInputPanel extends StatelessWidget {
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: canSearch && !isLoading
-            ? () => _handleSearchMototaxi(context, mapViewModel, rideProvider)
-            : null,
+        onPressed:
+            canSearch && !isLoading
+                ? () =>
+                    _handleSearchMototaxi(context, mapViewModel, rideProvider)
+                : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: canSearch ? AppColors.primary : AppColors.buttonDisabled,
+          backgroundColor:
+              canSearch ? AppColors.primary : AppColors.buttonDisabled,
           foregroundColor: AppColors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: isLoading
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  color: AppColors.white,
-                  strokeWidth: 2,
+        child:
+            isLoading
+                ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: AppColors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+                : Text(
+                  'Buscar Mototaxi',
+                  style: AppTextStyles.poppinsButton.copyWith(
+                    color:
+                        canSearch
+                            ? AppColors.white
+                            : AppColors.buttonTextDisabled,
+                  ),
                 ),
-              )
-            : Text(
-                'Buscar Mototaxi',
-                style: AppTextStyles.poppinsButton.copyWith(
-                  color: canSearch ? AppColors.white : AppColors.buttonTextDisabled,
-                ),
-              ),
       ),
     );
   }
@@ -297,7 +306,9 @@ class LocationInputPanel extends StatelessWidget {
     RideProvider rideProvider,
   ) async {
     // Validar que existan todos los datos necesarios
-    if (!mapViewModel.hasRoute || !mapViewModel.hasPickupLocation || !mapViewModel.hasDestinationLocation) {
+    if (!mapViewModel.hasRoute ||
+        !mapViewModel.hasPickupLocation ||
+        !mapViewModel.hasDestinationLocation) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Error: No se puede crear la solicitud de viaje'),
@@ -316,7 +327,9 @@ class LocationInputPanel extends StatelessWidget {
         destinoLng: mapViewModel.destinationLocation!.coordinates.longitude,
         origenDireccion: mapViewModel.pickupLocation!.address,
         destinoDireccion: mapViewModel.destinationLocation!.address,
-        precioSugerido: mapViewModel.routeDistance * 1.0 + 3.0, // 3 soles base + 1 sol por km
+        precioSugerido:
+            mapViewModel.routeDistance * 1.0 +
+            3.0, // 3 soles base + 1 sol por km
         metodoPagoPreferido: 'efectivo', // Por defecto efectivo
         estado: 'pendiente',
         fechaCreacion: DateTime.now(),
@@ -327,25 +340,47 @@ class LocationInputPanel extends StatelessWidget {
 
       if (context.mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Buscando mototaxi...'),
-              backgroundColor: AppColors.success,
+          // Navegar a la pantalla de búsqueda con efecto radar
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder:
+                  (context) => DriverSearchScreen(
+                    pickupLat:
+                        mapViewModel.pickupLocation!.coordinates.latitude,
+                    pickupLng:
+                        mapViewModel.pickupLocation!.coordinates.longitude,
+                    destinationLat:
+                        mapViewModel.destinationLocation!.coordinates.latitude,
+                    destinationLng:
+                        mapViewModel.destinationLocation!.coordinates.longitude,
+                    pickupAddress:
+                        mapViewModel.pickupLocation!.address ??
+                        'Punto de recogida',
+                    destinationAddress:
+                        mapViewModel.destinationLocation!.address ?? 'Destino',
+                    estimatedPrice: mapViewModel.routeDistance * 1.0 + 3.0,
+                  ),
             ),
           );
         } else {
           // Si no fue exitoso, mostrar el error del provider
           String errorMessage = 'Error al crear la solicitud';
-          
+
           if (rideProvider.error != null) {
-            if (rideProvider.error!.contains('NO hay conductores cercanos disponibles')) {
-              errorMessage = 'No hay conductores disponibles en tu zona. Por favor, intenta más tarde.';
+            if (rideProvider.error!.contains(
+              'NO hay conductores cercanos disponibles',
+            )) {
+              errorMessage =
+                  'No hay conductores disponibles en tu zona. Por favor, intenta más tarde.';
             } else if (rideProvider.error!.contains('Error de validación')) {
-              errorMessage = 'Error en los datos de la solicitud. Por favor, verifica la información.';
+              errorMessage =
+                  'Error en los datos de la solicitud. Por favor, verifica la información.';
             } else if (rideProvider.error!.contains('Error de autenticación')) {
-              errorMessage = 'Error de sesión. Por favor, vuelve a iniciar sesión.';
+              errorMessage =
+                  'Error de sesión. Por favor, vuelve a iniciar sesión.';
             } else if (rideProvider.error!.contains('Error de conexión')) {
-              errorMessage = 'Error de conexión. Por favor, verifica tu conexión a internet.';
+              errorMessage =
+                  'Error de conexión. Por favor, verifica tu conexión a internet.';
             }
           }
 
@@ -379,15 +414,18 @@ class LocationInputPanel extends StatelessWidget {
     } catch (e) {
       if (context.mounted) {
         String errorMessage = 'Error al crear la solicitud';
-        
+
         if (e.toString().contains('NO hay conductores cercanos disponibles')) {
-          errorMessage = 'No hay conductores disponibles en tu zona. Por favor, intenta más tarde.';
+          errorMessage =
+              'No hay conductores disponibles en tu zona. Por favor, intenta más tarde.';
         } else if (e.toString().contains('Error de validación')) {
-          errorMessage = 'Error en los datos de la solicitud. Por favor, verifica la información.';
+          errorMessage =
+              'Error en los datos de la solicitud. Por favor, verifica la información.';
         } else if (e.toString().contains('Error de autenticación')) {
           errorMessage = 'Error de sesión. Por favor, vuelve a iniciar sesión.';
         } else if (e.toString().contains('Error de conexión')) {
-          errorMessage = 'Error de conexión. Por favor, verifica tu conexión a internet.';
+          errorMessage =
+              'Error de conexión. Por favor, verifica tu conexión a internet.';
         }
 
         ScaffoldMessenger.of(context).showSnackBar(

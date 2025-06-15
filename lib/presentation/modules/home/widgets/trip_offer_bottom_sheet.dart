@@ -46,6 +46,7 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
       // Calcular precio recomendado: 3 soles base + 1 sol por km
       final distanceKm = mapViewModel.routeDistance;
       _recommendedPrice = 3.0 + (distanceKm * 1.0);
+      // Redondear a 0.50 más cercano para permitir decimales
       _recommendedPrice = ((_recommendedPrice * 2).round()) / 2;
 
       _userPrice = _recommendedPrice;
@@ -108,7 +109,7 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Buscando mototaxi por S/${_userPrice.toStringAsFixed(0)}',
+                'Buscando mototaxi por S/${_userPrice.toStringAsFixed(2)}',
               ),
               backgroundColor: AppColors.success,
             ),
@@ -326,13 +327,17 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
                       color: AppColors.white,
                     ),
                     textAlign: TextAlign.center,
-                    keyboardType: TextInputType.number,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d{1,3}$')),
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d{1,3}(\.\d{0,2})?$'),
+                      ),
                     ],
                     decoration: InputDecoration(
                       border: InputBorder.none,
-                      hintText: _recommendedPrice.toStringAsFixed(0),
+                      hintText: _recommendedPrice.toStringAsFixed(2),
                       hintStyle: AppTextStyles.poppinsHeading1.copyWith(
                         fontSize: 56, // Reducido de 64 a 56
                         fontWeight: FontWeight.bold,
@@ -418,9 +423,9 @@ class _TripOfferBottomSheetState extends State<TripOfferBottomSheet> {
                 margin: const EdgeInsets.symmetric(horizontal: 16),
               ),
 
-              // Plin
+              // Transferencia (Plin)
               _buildPaymentOption(
-                'plin',
+                'transferencia',
                 'Plin',
                 Icons.account_balance_wallet,
                 'Pago digital con Plin',

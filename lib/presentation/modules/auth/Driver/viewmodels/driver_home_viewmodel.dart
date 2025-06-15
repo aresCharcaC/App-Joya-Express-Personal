@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:joya_express/data/models/user/ride_request_model.dart';
 import '../../../../../data/services/rides_service.dart';
 import '../../../../../data/services/websocket_service.dart';
+import 'driver_settings_viewmodel.dart';
 import 'dart:math';
 
 class DriverHomeViewModel extends ChangeNotifier {
@@ -28,6 +29,9 @@ class DriverHomeViewModel extends ChangeNotifier {
   // Ubicación actual
   Position? _currentPosition;
 
+  // Configuración del conductor
+  DriverSettingsViewModel? _settingsViewModel;
+
   // Getters
   bool get disponible => _disponible;
   bool get isLoadingSolicitudes => _isLoadingSolicitudes;
@@ -47,6 +51,10 @@ class DriverHomeViewModel extends ChangeNotifier {
         nombreCompleto: 'Luis Pérez',
         telefono: '987654321',
       );
+
+      // Inicializar configuración del conductor
+      _settingsViewModel = DriverSettingsViewModel();
+      await _settingsViewModel!.init();
 
       // Obtener ubicación inicial
       await _initializeLocation();
@@ -167,16 +175,72 @@ class DriverHomeViewModel extends ChangeNotifier {
 
         // Filtrar por distancia si tenemos ubicación
         if (_currentPosition != null) {
+          // Usar la configuración de distancia del conductor
+          final maxDistanceMeters =
+              _settingsViewModel?.searchRadiusMeters ?? 1000.0;
+
           final solicitudesFiltradas = _filterByDistance(
             realRequests.map((r) => r.toJson()).toList(),
             _currentPosition!.latitude,
             _currentPosition!.longitude,
-            800.0, // 800 metros = ~7-8 cuadras
+            maxDistanceMeters,
           );
 
-          _solicitudes = solicitudesFiltradas;
+          // Aplicar filtros y ordenamiento de configuración
+          List<dynamic> solicitudesProcesadas = solicitudesFiltradas;
+
+          if (_settingsViewModel != null) {
+            // Aplicar filtros
+            solicitudesProcesadas = _settingsViewModel!.applyFilters(
+              solicitudesProcesadas,
+              getPrice:
+                  (solicitud) =>
+                      solicitud['precioSugerido']?.toDouble() ??
+                      solicitud['precio_sugerido']?.toDouble() ??
+                      0.0,
+            );
+
+            // Aplicar ordenamiento
+            solicitudesProcesadas = _settingsViewModel!.applySorting(
+              solicitudesProcesadas,
+              getDistance: (solicitud) {
+                double origenLat =
+                    solicitud['origenLat'] ?? solicitud['origen_lat'] ?? 0.0;
+                double origenLng =
+                    solicitud['origenLng'] ?? solicitud['origen_lng'] ?? 0.0;
+                return _calculateHaversineDistance(
+                      _currentPosition!.latitude,
+                      _currentPosition!.longitude,
+                      origenLat,
+                      origenLng,
+                    ) /
+                    1000; // Convertir a km
+              },
+              getPrice:
+                  (solicitud) =>
+                      solicitud['precioSugerido']?.toDouble() ??
+                      solicitud['precio_sugerido']?.toDouble() ??
+                      0.0,
+              getTime: (solicitud) {
+                try {
+                  String? fechaStr =
+                      solicitud['fechaCreacion'] ??
+                      solicitud['fecha_creacion'] ??
+                      solicitud['fecha_solicitud'];
+                  if (fechaStr != null) {
+                    return DateTime.parse(fechaStr);
+                  }
+                } catch (e) {
+                  print('Error parseando fecha: $e');
+                }
+                return DateTime.now();
+              },
+            );
+          }
+
+          _solicitudes = solicitudesProcesadas;
           print(
-            '🔍 Filtrado: ${solicitudesFiltradas.length} de ${realRequests.length} solicitudes mostradas',
+            '🔍 Filtrado: ${solicitudesProcesadas.length} de ${realRequests.length} solicitudes mostradas (radio: ${(maxDistanceMeters / 1000).toStringAsFixed(1)}km)',
           );
         } else {
           // Si no hay ubicación, mostrar todas
@@ -417,6 +481,19 @@ class DriverHomeViewModel extends ChangeNotifier {
     } catch (e) {
       print('❌ Error rechazando solicitud: $e');
       return false;
+    }
+  }
+
+  /// ⚙️ Obtener configuración actual del conductor
+  DriverSettingsViewModel? get settingsViewModel => _settingsViewModel;
+
+  /// 🔄 Recargar configuración del conductor
+  Future<void> reloadSettings() async {
+    if (_settingsViewModel != null) {
+      await _settingsViewModel!.init();
+      // Recargar solicitudes con nueva configuración
+      await refreshSolicitudes();
+      print('✅ Configuración del conductor recargada');
     }
   }
 
